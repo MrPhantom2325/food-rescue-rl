@@ -222,3 +222,67 @@ class ScenarioLoader:
             donor_distance_matrix=donor_distance_matrix,
             summary_stats=summary_stats,
         )
+
+
+# -----------------------------
+# Vehicle factory
+# -----------------------------
+
+def make_vehicles(scenario: Scenario, start_strategy: str = "center") -> list:
+    """
+    Spawn a fleet of fresh Vehicles for an episode.
+
+    Parameters
+    ----------
+    scenario : Scenario
+        The loaded scenario, gives us count and capacity.
+    start_strategy : str
+        Where to place vehicles initially:
+        - "center": all vehicles start at the city center (simplest, default)
+        - "spread": vehicles distributed along a diagonal
+        - "near_donors": each vehicle starts near a donor (round-robin)
+
+    Returns
+    -------
+    list[Vehicle]
+        A fresh list of Vehicle objects, ready for the episode.
+    """
+    from sim.entities import Vehicle
+
+    n = scenario.num_vehicles
+    cap = scenario.vehicle_capacity
+    grid = scenario.city.grid_size
+
+    if start_strategy == "center":
+        center = (grid // 2, grid // 2)
+        return [
+            Vehicle(vehicle_id=i, location=center, capacity=cap)
+            for i in range(n)
+        ]
+
+    if start_strategy == "spread":
+        # Spread along the main diagonal
+        positions = [
+            (int(i * (grid - 1) / max(n - 1, 1)), int(i * (grid - 1) / max(n - 1, 1)))
+            for i in range(n)
+        ]
+        return [
+            Vehicle(vehicle_id=i, location=positions[i], capacity=cap)
+            for i in range(n)
+        ]
+
+    if start_strategy == "near_donors":
+        # Each vehicle starts at a donor (cycling if we have more vehicles than donors)
+        return [
+            Vehicle(
+                vehicle_id=i,
+                location=scenario.donors[i % len(scenario.donors)].location,
+                capacity=cap,
+            )
+            for i in range(n)
+        ]
+
+    raise ValueError(
+        f"Unknown start_strategy: {start_strategy!r}. "
+        f"Expected one of: 'center', 'spread', 'near_donors'."
+    )

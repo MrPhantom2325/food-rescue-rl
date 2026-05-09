@@ -129,3 +129,62 @@ class TestScenarioLoader:
         assert scn.summary_stats  # non-empty
         assert scn.summary_stats["scenario"] == "weekday"
         assert scn.summary_stats["num_donors"] == 5
+
+
+# -----------------------------
+# make_vehicles
+# -----------------------------
+
+class TestMakeVehicles:
+    def _scenario(self):
+        from sim.city import ScenarioLoader
+        return ScenarioLoader().load("weekday")
+
+    def test_center_strategy(self):
+        from sim.city import make_vehicles
+        scn = self._scenario()
+        vehicles = make_vehicles(scn, start_strategy="center")
+        assert len(vehicles) == scn.num_vehicles
+        center = (scn.city.grid_size // 2, scn.city.grid_size // 2)
+        for v in vehicles:
+            assert v.location == center
+            assert v.capacity == scn.vehicle_capacity
+            assert v.is_idle()
+
+    def test_spread_strategy(self):
+        from sim.city import make_vehicles
+        scn = self._scenario()
+        vehicles = make_vehicles(scn, start_strategy="spread")
+        assert len(vehicles) == scn.num_vehicles
+        # Different vehicles should be at different positions
+        positions = {v.location for v in vehicles}
+        assert len(positions) == scn.num_vehicles
+
+    def test_near_donors_strategy(self):
+        from sim.city import make_vehicles
+        scn = self._scenario()
+        vehicles = make_vehicles(scn, start_strategy="near_donors")
+        donor_locs = {d.location for d in scn.donors}
+        for v in vehicles:
+            assert v.location in donor_locs
+
+    def test_unknown_strategy_raises(self):
+        from sim.city import make_vehicles
+        scn = self._scenario()
+        import pytest
+        with pytest.raises(ValueError, match="Unknown start_strategy"):
+            make_vehicles(scn, start_strategy="nonsense")
+
+    def test_fresh_objects_per_call(self):
+        from sim.city import make_vehicles
+        scn = self._scenario()
+        v1 = make_vehicles(scn)
+        v2 = make_vehicles(scn)
+        assert v1[0] is not v2[0]
+
+    def test_unique_vehicle_ids(self):
+        from sim.city import make_vehicles
+        scn = self._scenario()
+        vehicles = make_vehicles(scn)
+        ids = [v.vehicle_id for v in vehicles]
+        assert len(set(ids)) == len(ids)
