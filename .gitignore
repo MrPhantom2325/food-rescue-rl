@@ -13,7 +13,7 @@ venv/
 # Jupyter
 .ipynb_checkpoints/
 
-# RL outputs (regeneratable)
+# RL outputs (regeneratable, not git-tracked)
 experiments/policies/*.pkl
 experiments/policies/*.pt
 experiments/results/*.csv
@@ -25,14 +25,6 @@ experiments/videos/*.mp4
 mlruns/
 mlartifacts/
 mlflow.db
-
-# DVC
-/data/raw/*
-/data/processed/*
-!/data/raw/.gitkeep
-!/data/processed/.gitkeep
-.dvc/cache
-.dvc/tmp
 
 # FastAPI logs
 api/logs/*.log

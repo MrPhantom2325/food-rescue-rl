@@ -1,0 +1,17 @@
+scenario_name: weekday
+description: Standard weekday operation - moderate, predictable patterns
+episode_length: 200
+grid_size: 10
+num_vehicles: 2
+vehicle_capacity: 20
+random_seed: 42
+time_modifiers:
+  morning:
+    donor_arrival_mult: 0.6
+    shelter_demand_mult: 0.8
+  afternoon:
+    donor_arrival_mult: 1.4
+    shelter_demand_mult: 1.0
+  evening:
+    donor_arrival_mult: 1.0
+    shelter_demand_mult: 1.3

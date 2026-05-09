@@ -1,0 +1,6 @@
+donor_id,name,type,x,y,arrival_rate,avg_quantity,shelf_life_min,shelf_life_max
+D001,Green Garden Restaurant,restaurant,2,3,0.15,8,30,80
+D002,FreshMart Supermarket,supermarket,7,2,0.20,15,40,120
+D003,Sunrise Cafe,cafe,1,8,0.10,5,25,60
+D004,Metro Hotel Kitchen,hotel,8,7,0.12,12,35,90
+D005,Community Bakery,bakery,4,5,0.18,7,20,50

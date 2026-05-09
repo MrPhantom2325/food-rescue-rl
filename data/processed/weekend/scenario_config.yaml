@@ -1,0 +1,17 @@
+scenario_name: weekend
+description: Weekend operation - higher restaurant donations, higher shelter demand
+episode_length: 200
+grid_size: 10
+num_vehicles: 2
+vehicle_capacity: 20
+random_seed: 43
+time_modifiers:
+  morning:
+    donor_arrival_mult: 0.8
+    shelter_demand_mult: 1.0
+  afternoon:
+    donor_arrival_mult: 1.6
+    shelter_demand_mult: 1.2
+  evening:
+    donor_arrival_mult: 1.4
+    shelter_demand_mult: 1.5

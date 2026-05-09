@@ -15,7 +15,6 @@ seaborn==0.13.2
 
 # MLOps - tracking & versioning
 mlflow==2.10.0
-dvc==3.42.0
 optuna==3.5.0
 
 # Serving
