@@ -1,0 +1,37 @@
+
+run:
+  run_id: dqn_v1
+  agent: dqn
+  scenario: weekday
+  num_episodes: 800
+  seed: 42
+  output_dir: experiments
+  description: |
+    Deep Q-Network on the weekday scenario. 128/128 MLP, replay buffer
+    50k, target net hard-update every 500 steps.
+
+agent_params:
+  hidden_sizes: [128, 128]
+  learning_rate: 0.001
+  discount: 0.95
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 500
+  replay_buffer_size: 50000
+  batch_size: 64
+  min_replay_to_train: 1000
+  target_update_interval: 500
+  grad_clip: 1.0
+  device: auto
+
+reward_weights:
+  delivery: 10.0
+  spoilage: 5.0
+  distance: 0.1
+  unmet_demand: 1.0
+  priority_bonus: 0.5
+  oversupply_penalty: 0.3
+
+eval:
+  n_episodes: 5
+  eval_seeds: [100, 101, 102, 103, 104]

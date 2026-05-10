@@ -1,0 +1,33 @@
+
+run:
+  run_id: qlearning_v1
+  agent: q_learning
+  scenario: weekday
+  num_episodes: 1500
+  seed: 42
+  output_dir: experiments
+  description: |
+    Tabular Q-learning baseline on the weekday scenario.
+    Default hyperparameters; epsilon decays linearly over 800 episodes.
+
+agent_params:
+  learning_rate: 0.1
+  discount: 0.95
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 800
+  optimistic_init: 0.0
+  pos_buckets: 3
+  load_buckets: 3
+
+reward_weights:
+  delivery: 10.0
+  spoilage: 5.0
+  distance: 0.1
+  unmet_demand: 1.0
+  priority_bonus: 0.5
+  oversupply_penalty: 0.3
+
+eval:
+  n_episodes: 5
+  eval_seeds: [100, 101, 102, 103, 104]
