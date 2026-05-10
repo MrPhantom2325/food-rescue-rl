@@ -1,0 +1,104 @@
+{
+  "run_id": "dqn_v1",
+  "agent": "dqn",
+  "scenario": "weekday",
+  "num_episodes": 800,
+  "seed": 42,
+  "git_commit": "c8a093ab8a770e3d48d664ad4f88cce0a38f5a9d",
+  "wall_time_seconds": 1607.8412811756134,
+  "eval_summary": {
+    "eval_mean_reward": -506.2876,
+    "eval_std_reward": 453.33753366497245,
+    "eval_mean_delivered": 66.6,
+    "eval_mean_spoiled": 239.2,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -712.1520000000002,
+      "delivered_units": 58.0,
+      "spoiled_units": 265.0,
+      "deliveries_count": 13,
+      "distance": 155
+    },
+    {
+      "seed": 101,
+      "total_reward": -551.1740000000004,
+      "delivered_units": 70.0,
+      "spoiled_units": 247.0,
+      "deliveries_count": 12,
+      "distance": 126
+    },
+    {
+      "seed": 102,
+      "total_reward": -1212.454,
+      "delivered_units": 38.0,
+      "spoiled_units": 318.0,
+      "deliveries_count": 8,
+      "distance": 133
+    },
+    {
+      "seed": 103,
+      "total_reward": 87.63400000000027,
+      "delivered_units": 100.0,
+      "spoiled_units": 196.0,
+      "deliveries_count": 30,
+      "distance": 156
+    },
+    {
+      "seed": 104,
+      "total_reward": -143.29199999999997,
+      "delivered_units": 67.0,
+      "spoiled_units": 170.0,
+      "deliveries_count": 18,
+      "distance": 126
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "dqn_v1",
+      "agent": "dqn",
+      "scenario": "weekday",
+      "num_episodes": 800,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "Deep Q-Network on the weekday scenario. 128/128 MLP, replay buffer\n50k, target net hard-update every 500 steps.\n"
+    },
+    "agent_params": {
+      "hidden_sizes": [
+        128,
+        128
+      ],
+      "learning_rate": 0.001,
+      "discount": 0.95,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 500,
+      "replay_buffer_size": 50000,
+      "batch_size": 64,
+      "min_replay_to_train": 1000,
+      "target_update_interval": 500,
+      "grad_clip": 1.0,
+      "device": "auto"
+    },
+    "reward_weights": {
+      "delivery": 10.0,
+      "spoilage": 5.0,
+      "distance": 0.1,
+      "unmet_demand": 1.0,
+      "priority_bonus": 0.5,
+      "oversupply_penalty": 0.3
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

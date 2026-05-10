@@ -1,0 +1,27 @@
+{
+  "scenario": "holiday_rush",
+  "version": "unknown",
+  "num_donors": 5,
+  "num_shelters": 5,
+  "grid_size": 10,
+  "episode_length": 200,
+  "total_expected_supply_per_episode": 1108.0,
+  "total_expected_demand_per_episode": 310.00000000000006,
+  "min_donor_shelter_distance": 2,
+  "max_donor_shelter_distance": 12,
+  "mean_donor_shelter_distance": 6.16,
+  "donor_types": {
+    "restaurant": 1,
+    "supermarket": 1,
+    "cafe": 1,
+    "hotel": 1,
+    "bakery": 1
+  },
+  "shelter_types": {
+    "homeless": 1,
+    "children": 1,
+    "elderly": 1,
+    "foodbank": 1,
+    "refugee": 1
+  }
+}

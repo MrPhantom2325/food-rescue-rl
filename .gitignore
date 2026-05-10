@@ -13,26 +13,18 @@ venv/
 # Jupyter
 .ipynb_checkpoints/
 
-# RL outputs (regeneratable)
-experiments/policies/*.pkl
-experiments/policies/*.pt
-experiments/results/*.csv
-experiments/results/*.json
-experiments/figures/*.png
-experiments/videos/*.mp4
+# RL outputs (regeneratable, not git-tracked)
+# experiments/policies/*.pkl
+# experiments/policies/*.pt
+# experiments/results/*.csv
+# experiments/results/*.json
+# experiments/figures/*.png
+# experiments/videos/*.mp4
 
 # MLflow local server
 mlruns/
 mlartifacts/
 mlflow.db
-
-# DVC
-/data/raw/*
-/data/processed/*
-!/data/raw/.gitkeep
-!/data/processed/.gitkeep
-.dvc/cache
-.dvc/tmp
 
 # FastAPI logs
 api/logs/*.log

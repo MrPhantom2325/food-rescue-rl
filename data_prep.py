@@ -1,4 +1,3 @@
-
 """
 Data preparation pipeline for food rescue scenarios.
 
@@ -39,7 +38,7 @@ class DataValidationError(Exception):
 
 
 def validate_donors(df: pd.DataFrame, grid_size: int) -> None:
-    """Validate donor CSV — schema, ranges, uniqueness."""
+    """Validate donor CSV: schema, ranges, uniqueness."""
     missing = set(REQUIRED_DONOR_COLS) - set(df.columns)
     if missing:
         raise DataValidationError(f"donors.csv missing columns: {missing}")
@@ -91,8 +90,6 @@ def compute_distance_matrix(donors: pd.DataFrame, shelters: pd.DataFrame) -> np.
     """
     donor_coords = donors[["x", "y"]].to_numpy()
     shelter_coords = shelters[["x", "y"]].to_numpy()
-
-    # Broadcasting: (N, 1, 2) - (1, M, 2) -> (N, M, 2)
     diffs = np.abs(donor_coords[:, None, :] - shelter_coords[None, :, :])
     return diffs.sum(axis=-1)
 
@@ -106,12 +103,11 @@ def compute_donor_donor_distances(donors: pd.DataFrame) -> np.ndarray:
 
 def normalize_rates(donors: pd.DataFrame, shelters: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Add normalized rate columns. These help RL by keeping inputs in [0, 1]-ish range.
+    Add normalized rate columns. Helps RL by keeping inputs in [0, 1] range.
     """
     donors = donors.copy()
     shelters = shelters.copy()
 
-    # Normalize arrival rates by max
     donors["arrival_rate_norm"] = donors["arrival_rate"] / donors["arrival_rate"].max()
     donors["avg_quantity_norm"] = donors["avg_quantity"] / donors["avg_quantity"].max()
     donors["shelf_life_avg"] = (donors["shelf_life_min"] + donors["shelf_life_max"]) / 2
@@ -128,9 +124,10 @@ def compute_summary_stats(
     distance_matrix: np.ndarray,
     config: dict,
 ) -> dict:
-    """Stats useful for the report and for env initialization."""
+    """Stats useful for the report and for sanity-checking."""
     return {
         "scenario": config["scenario_name"],
+        "version": config.get("version", "unknown"),
         "num_donors": len(donors),
         "num_shelters": len(shelters),
         "grid_size": config["grid_size"],
@@ -159,7 +156,6 @@ def process_scenario(scenario: str) -> None:
     if not raw_path.exists():
         raise FileNotFoundError(f"Raw scenario folder not found: {raw_path}")
 
-    # Load raw
     donors = pd.read_csv(raw_path / "donors.csv")
     shelters = pd.read_csv(raw_path / "shelters.csv")
     with open(raw_path / "scenario_config.yaml") as f:
@@ -167,21 +163,17 @@ def process_scenario(scenario: str) -> None:
 
     print(f"Loaded {len(donors)} donors, {len(shelters)} shelters")
 
-    # Validate
     validate_donors(donors, config["grid_size"])
     validate_shelters(shelters, config["grid_size"])
     print("Validation passed")
 
-    # Feature engineer
     donors_proc, shelters_proc = normalize_rates(donors, shelters)
     distance_matrix = compute_distance_matrix(donors_proc, shelters_proc)
     donor_distance_matrix = compute_donor_donor_distances(donors_proc)
     print(f"Computed distance matrix: shape {distance_matrix.shape}")
 
-    # Summary
     stats = compute_summary_stats(donors_proc, shelters_proc, distance_matrix, config)
 
-    # Write processed
     out_path = PROCESSED_DIR / scenario
     out_path.mkdir(parents=True, exist_ok=True)
 
@@ -190,7 +182,6 @@ def process_scenario(scenario: str) -> None:
     np.save(out_path / "distance_matrix.npy", distance_matrix)
     np.save(out_path / "donor_distance_matrix.npy", donor_distance_matrix)
 
-    # Re-write config to processed dir for self-contained loading
     with open(out_path / "scenario_config.yaml", "w") as f:
         yaml.safe_dump(config, f, sort_keys=False)
 
@@ -222,7 +213,7 @@ def main() -> int:
     else:
         process_scenario(args.scenario)
 
-    print("\n✅ Data preparation complete.")
+    print("\nData preparation complete.")
     return 0
 
 

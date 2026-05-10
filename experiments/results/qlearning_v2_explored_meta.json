@@ -1,0 +1,97 @@
+{
+  "run_id": "qlearning_v2_explored",
+  "agent": "q_learning",
+  "scenario": "weekday",
+  "num_episodes": 1500,
+  "seed": 42,
+  "git_commit": "c8a093ab8a770e3d48d664ad4f88cce0a38f5a9d",
+  "wall_time_seconds": 28.02572512626648,
+  "eval_summary": {
+    "eval_mean_reward": -775.2044000000001,
+    "eval_std_reward": 357.2436809426305,
+    "eval_mean_delivered": 49.2,
+    "eval_mean_spoiled": 253.2,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -881.7679999999997,
+      "delivered_units": 43.0,
+      "spoiled_units": 259.0,
+      "deliveries_count": 9,
+      "distance": 139
+    },
+    {
+      "seed": 101,
+      "total_reward": -407.162,
+      "delivered_units": 63.0,
+      "spoiled_units": 209.0,
+      "deliveries_count": 15,
+      "distance": 163
+    },
+    {
+      "seed": 102,
+      "total_reward": -1210.3539999999998,
+      "delivered_units": 43.0,
+      "spoiled_units": 334.0,
+      "deliveries_count": 9,
+      "distance": 142
+    },
+    {
+      "seed": 103,
+      "total_reward": -1067.0960000000005,
+      "delivered_units": 37.0,
+      "spoiled_units": 283.0,
+      "deliveries_count": 11,
+      "distance": 159
+    },
+    {
+      "seed": 104,
+      "total_reward": -309.6420000000002,
+      "delivered_units": 60.0,
+      "spoiled_units": 181.0,
+      "deliveries_count": 12,
+      "distance": 169
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "qlearning_v2_explored",
+      "agent": "q_learning",
+      "scenario": "weekday",
+      "num_episodes": 1500,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "Tabular Q-learning with extended exploration: epsilon decays over\n1200 episodes (vs 800 in v1). Tests whether more exploration finds\nbetter long-run policies on the same scenario.\n"
+    },
+    "agent_params": {
+      "learning_rate": 0.05,
+      "discount": 0.95,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.15,
+      "epsilon_decay_episodes": 1500,
+      "optimistic_init": 0.0,
+      "pos_buckets": 3,
+      "load_buckets": 3
+    },
+    "reward_weights": {
+      "delivery": 10.0,
+      "spoilage": 5.0,
+      "distance": 0.1,
+      "unmet_demand": 1.0,
+      "priority_bonus": 0.5,
+      "oversupply_penalty": 0.3
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

@@ -1,0 +1,18 @@
+scenario_name: holiday_rush
+description: Holiday rush - high donations AND high demand, shorter shelf lives (prepared
+  foods)
+episode_length: 200
+grid_size: 10
+num_vehicles: 2
+vehicle_capacity: 20
+random_seed: 44
+time_modifiers:
+  morning:
+    donor_arrival_mult: 1.2
+    shelter_demand_mult: 1.4
+  afternoon:
+    donor_arrival_mult: 1.8
+    shelter_demand_mult: 1.6
+  evening:
+    donor_arrival_mult: 1.5
+    shelter_demand_mult: 1.8

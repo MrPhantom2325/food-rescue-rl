@@ -1,0 +1,104 @@
+{
+  "run_id": "dqn_v2_holiday",
+  "agent": "dqn",
+  "scenario": "holiday_rush",
+  "num_episodes": 800,
+  "seed": 42,
+  "git_commit": "c8a093ab8a770e3d48d664ad4f88cce0a38f5a9d",
+  "wall_time_seconds": 1532.83598279953,
+  "eval_summary": {
+    "eval_mean_reward": -4592.154799999999,
+    "eval_std_reward": 394.22962463944725,
+    "eval_mean_delivered": 118.8,
+    "eval_mean_spoiled": 1166.8,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -5132.107999999998,
+      "delivered_units": 129.0,
+      "spoiled_units": 1305.0,
+      "deliveries_count": 25,
+      "distance": 169
+    },
+    {
+      "seed": 101,
+      "total_reward": -4096.090000000001,
+      "delivered_units": 130.0,
+      "spoiled_units": 1094.0,
+      "deliveries_count": 27,
+      "distance": 178
+    },
+    {
+      "seed": 102,
+      "total_reward": -4460.664000000001,
+      "delivered_units": 106.0,
+      "spoiled_units": 1109.0,
+      "deliveries_count": 19,
+      "distance": 175
+    },
+    {
+      "seed": 103,
+      "total_reward": -4305.555999999998,
+      "delivered_units": 117.0,
+      "spoiled_units": 1102.0,
+      "deliveries_count": 18,
+      "distance": 172
+    },
+    {
+      "seed": 104,
+      "total_reward": -4966.355999999999,
+      "delivered_units": 112.0,
+      "spoiled_units": 1224.0,
+      "deliveries_count": 19,
+      "distance": 174
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "dqn_v2_holiday",
+      "agent": "dqn",
+      "scenario": "holiday_rush",
+      "num_episodes": 800,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "DQN on the harder holiday_rush scenario. Same architecture as dqn_v1\nbut trained on a scenario that is supply-saturated and time-pressured.\nTests whether DQN can find policies that the greedy heuristic misses\nwhen the problem is genuinely hard.\n"
+    },
+    "agent_params": {
+      "hidden_sizes": [
+        128,
+        128
+      ],
+      "learning_rate": 0.001,
+      "discount": 0.95,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 500,
+      "replay_buffer_size": 50000,
+      "batch_size": 64,
+      "min_replay_to_train": 1000,
+      "target_update_interval": 500,
+      "grad_clip": 1.0,
+      "device": "auto"
+    },
+    "reward_weights": {
+      "delivery": 10.0,
+      "spoilage": 5.0,
+      "distance": 0.1,
+      "unmet_demand": 1.0,
+      "priority_bonus": 0.5,
+      "oversupply_penalty": 0.3
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

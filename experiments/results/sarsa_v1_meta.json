@@ -1,0 +1,97 @@
+{
+  "run_id": "sarsa_v1",
+  "agent": "sarsa",
+  "scenario": "weekday",
+  "num_episodes": 1500,
+  "seed": 42,
+  "git_commit": "c8a093ab8a770e3d48d664ad4f88cce0a38f5a9d",
+  "wall_time_seconds": 25.563253164291382,
+  "eval_summary": {
+    "eval_mean_reward": -664.1716,
+    "eval_std_reward": 234.88040269856495,
+    "eval_mean_delivered": 51.4,
+    "eval_mean_spoiled": 236.2,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -953.8960000000003,
+      "delivered_units": 37.0,
+      "spoiled_units": 262.0,
+      "deliveries_count": 13,
+      "distance": 134
+    },
+    {
+      "seed": 101,
+      "total_reward": -722.6259999999996,
+      "delivered_units": 50.0,
+      "spoiled_units": 244.0,
+      "deliveries_count": 16,
+      "distance": 125
+    },
+    {
+      "seed": 102,
+      "total_reward": -783.2000000000002,
+      "delivered_units": 58.0,
+      "spoiled_units": 277.0,
+      "deliveries_count": 18,
+      "distance": 143
+    },
+    {
+      "seed": 103,
+      "total_reward": -611.092,
+      "delivered_units": 56.0,
+      "spoiled_units": 232.0,
+      "deliveries_count": 22,
+      "distance": 134
+    },
+    {
+      "seed": 104,
+      "total_reward": -250.04399999999998,
+      "delivered_units": 56.0,
+      "spoiled_units": 166.0,
+      "deliveries_count": 21,
+      "distance": 112
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "sarsa_v1",
+      "agent": "sarsa",
+      "scenario": "weekday",
+      "num_episodes": 1500,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "SARSA (on-policy) on the weekday scenario. Same hyperparameters as\nqlearning_v1 to enable direct comparison of off-policy vs on-policy\nlearning on the same task.\n"
+    },
+    "agent_params": {
+      "learning_rate": 0.05,
+      "discount": 0.95,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.15,
+      "epsilon_decay_episodes": 1000,
+      "optimistic_init": 0.0,
+      "pos_buckets": 3,
+      "load_buckets": 3
+    },
+    "reward_weights": {
+      "delivery": 10.0,
+      "spoilage": 5.0,
+      "distance": 0.1,
+      "unmet_demand": 1.0,
+      "priority_bonus": 0.5,
+      "oversupply_penalty": 0.3
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}
