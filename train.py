@@ -1,4 +1,3 @@
-
 """
 Unified training entry point for the food rescue project.
 
