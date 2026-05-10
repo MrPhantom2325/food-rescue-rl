@@ -90,8 +90,9 @@ class TestDonor:
         d = self._make_donor()
         b = FoodBatch(batch_id=1, quantity=10, shelf_life=1, origin_donor_id="D001")
         d.pending_batches.append(b)
-        spoiled = d.tick_pending_batches()
-        assert spoiled == 1
+        count, qty = d.tick_pending_batches()
+        assert count == 1
+        assert qty == 10.0
         assert len(d.pending_batches) == 0
 
     def test_pickup_all(self):

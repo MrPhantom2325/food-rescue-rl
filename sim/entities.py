@@ -162,20 +162,29 @@ class Donor:
         self.pending_batches.append(batch)
         return batch
 
-    def tick_pending_batches(self) -> int:
+    def tick_pending_batches(self) -> tuple[int, float]:
         """
-        Age all pending batches by one step. Remove and return the count of any that spoiled.
+        Age all pending batches by one step.
+
+        Returns
+        -------
+        spoiled_count : int
+            Number of batches that spoiled this tick.
+        spoiled_quantity : float
+            Total quantity (units) that spoiled this tick.
         """
         spoiled_count = 0
+        spoiled_quantity = 0.0
         surviving: list[FoodBatch] = []
         for b in self.pending_batches:
             b.tick()
             if b.status == BatchStatus.SPOILED:
                 spoiled_count += 1
+                spoiled_quantity += b.quantity
             else:
                 surviving.append(b)
         self.pending_batches = surviving
-        return spoiled_count
+        return spoiled_count, spoiled_quantity
 
     def total_pending_quantity(self) -> float:
         return sum(b.quantity for b in self.pending_batches)

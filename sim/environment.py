@@ -48,7 +48,7 @@ import numpy as np
 from gymnasium import spaces
 
 from sim.city import ScenarioLoader, make_vehicles
-from sim.entities import FoodBatch
+from sim.entities import BatchStatus, FoodBatch
 
 
 # -----------------------------
@@ -302,15 +302,205 @@ class FoodRescueEnv(gym.Env):
         }
         return obs, info
 
-    # -----------------------------
-    # Step (placeholder — full implementation in Step 8)
+   # -----------------------------
+    # Step
     # -----------------------------
 
     def step(self, action: int):
-        """Apply action, advance world. Implemented in Step 8."""
-        raise NotImplementedError(
-            "step() will be implemented in Step 8. "
-            "This stub ensures the env structure is in place for Step 7's tests."
+        """
+        Apply an action and advance the world by one timestep.
+
+        Returns
+        -------
+        observation : np.ndarray
+        reward : float
+        terminated : bool
+            True if episode reached a natural end (we don't have one — always False).
+        truncated : bool
+            True if episode hit the timestep cap (this is what ends our episodes).
+        info : dict
+            Per-step metrics for logging.
+        """
+        if self.scenario is None:
+            raise RuntimeError("Must call reset() before step()")
+
+        # Reset per-step counters
+        step_metrics = {
+            "delivered_units": 0.0,
+            "wasted_units": 0.0,
+            "spoiled_units_donor": 0.0,
+            "spoiled_units_vehicle": 0.0,
+            "distance_traveled": 0,
+            "deliveries_count": 0,
+            "priority_deliveries_count": 0,
+            "batches_generated": 0,
+            "action_kind": None,
+            "action_target_id": None,
+            "vehicle_idx": self.current_vehicle_idx,
+        }
+
+        v = self.vehicles[self.current_vehicle_idx]
+
+        # 1. Decode and apply the action
+        kind, idx = self._decode_action(int(action))
+        step_metrics["action_kind"] = kind
+
+        if kind == "donor":
+            target = self.scenario.donors[idx]
+            v.set_target(target.location, "donor", target.donor_id)
+            step_metrics["action_target_id"] = target.donor_id
+        elif kind == "shelter":
+            target = self.scenario.shelters[idx]
+            v.set_target(target.location, "shelter", target.shelter_id)
+            step_metrics["action_target_id"] = target.shelter_id
+        else:  # idle
+            v.clear_target()
+            step_metrics["action_target_id"] = None
+
+        # 2. Move the vehicle one cell toward its target
+        moved = v.move_one_step()
+        step_metrics["distance_traveled"] = moved
+
+        # 3. Process arrival (pickup or deliver)
+        if v.at_target():
+            if v.target_kind == "donor":
+                donor = self._find_donor_by_id(v.target_id)
+                if donor is not None:
+                    picked = donor.pickup_all(self.current_step)
+                    leftover = v.load_batches(picked)
+                    # Leftovers go back to donor (vehicle was full)
+                    donor.pending_batches.extend(leftover)
+                v.clear_target()
+
+            elif v.target_kind == "shelter":
+                shelter = self._find_shelter_by_id(v.target_id)
+                if shelter is not None and v.current_load() > 0:
+                    absorbed, wasted, n_batches = v.deliver_to_shelter(
+                        shelter, self.current_step
+                    )
+                    step_metrics["delivered_units"] = absorbed
+                    step_metrics["wasted_units"] = wasted
+                    step_metrics["deliveries_count"] = n_batches
+                    if shelter.priority == 1:
+                        step_metrics["priority_deliveries_count"] = n_batches
+                v.clear_target()
+
+        # 4. Donors generate new batches for this timestep
+        donor_mult = self.scenario.city.donor_rate_multiplier(self.current_step)
+        for donor in self.scenario.donors:
+            new_batch = donor.maybe_generate_batch(
+                self.current_step, self.next_batch_id, donor_mult, self.rng
+            )
+            if new_batch is not None:
+                self.batches.append(new_batch)
+                self.next_batch_id += 1
+                step_metrics["batches_generated"] += 1
+
+        # 5. Age all pending batches at donors (spoilage)
+        for donor in self.scenario.donors:
+            _, spoiled_qty = donor.tick_pending_batches()
+            step_metrics["spoiled_units_donor"] += spoiled_qty
+
+        # 6. Age batches in vehicle cargo (yes, food spoils mid-trip too)
+        for vehicle in self.vehicles:
+            self._tick_vehicle_cargo(vehicle, step_metrics)
+
+        # 7. Shelters grow demand
+        shelter_mult = self.scenario.city.shelter_rate_multiplier(self.current_step)
+        for shelter in self.scenario.shelters:
+            shelter.tick(shelter_mult, self.rng)
+
+        # 8. Compute reward
+        reward = self._compute_reward(step_metrics)
+
+        # 9. Update episode-level metrics
+        self._update_episode_metrics(step_metrics)
+        self._last_step_info = step_metrics
+
+        # 10. Advance vehicle round-robin and timestep
+        self.current_vehicle_idx = (self.current_vehicle_idx + 1) % self.num_vehicles
+        self.current_step += 1
+
+        # 11. Check termination
+        truncated = self.current_step >= self.max_episode_steps
+        terminated = False  # no natural terminal state in our problem
+
+        # 12. Build next observation (now that current_vehicle_idx has advanced)
+        obs = self._get_observation()
+
+        # Build info dict
+        info = {
+            **step_metrics,
+            "step": self.current_step,
+            "current_vehicle_idx": self.current_vehicle_idx,
+            "episode_metrics": dict(self._episode_metrics) if (terminated or truncated) else None,
+        }
+
+        return obs, reward, terminated, truncated, info
+
+    # -----------------------------
+    # Helpers used by step
+    # -----------------------------
+
+    def _find_donor_by_id(self, donor_id: str):
+        for d in self.scenario.donors:
+            if d.donor_id == donor_id:
+                return d
+        return None
+
+    def _find_shelter_by_id(self, shelter_id: str):
+        for s in self.scenario.shelters:
+            if s.shelter_id == shelter_id:
+                return s
+        return None
+
+
+
+    def _tick_vehicle_cargo(self, vehicle, step_metrics: dict) -> None:
+        """Age batches inside a vehicle's cargo. Spoiled ones are removed."""
+        surviving = []
+        for batch in vehicle.cargo:
+            batch.tick()
+            if batch.status == BatchStatus.SPOILED:
+                step_metrics["spoiled_units_vehicle"] += batch.quantity
+            else:
+                surviving.append(batch)
+        vehicle.cargo = surviving
+
+    def _compute_reward(self, m: dict) -> float:
+        """Combine per-step metrics into a scalar reward."""
+        w = self.config.reward_weights
+
+        delivered = m["delivered_units"]
+        wasted = m["wasted_units"]
+        spoiled = m["spoiled_units_donor"] + m["spoiled_units_vehicle"]
+        distance = m["distance_traveled"]
+        priority = m["priority_deliveries_count"]
+
+        # Sum unmet demand across all shelters as a soft penalty signal each step
+        unmet = sum(s.current_demand for s in self.scenario.shelters)
+
+        reward = (
+            w.delivery * delivered
+            + w.priority_bonus * priority * delivered  # bonus scaled by units delivered
+            - w.oversupply_penalty * wasted
+            - w.spoilage * spoiled
+            - w.distance * distance
+            - w.unmet_demand * (unmet / 100.0)  # divide to keep reward magnitudes balanced
+        )
+        return float(reward)
+
+    def _update_episode_metrics(self, m: dict) -> None:
+        em = self._episode_metrics
+        em["total_generated"] += m["batches_generated"]
+        em["total_delivered_units"] += m["delivered_units"]
+        em["total_spoiled_units"] += m["spoiled_units_donor"] + m["spoiled_units_vehicle"]
+        em["total_wasted_units"] += m["wasted_units"]
+        em["total_distance"] += m["distance_traveled"]
+        em["deliveries_count"] += m["deliveries_count"]
+        em["priority_deliveries_count"] += m["priority_deliveries_count"]
+        em["total_unmet_demand_steps"] += sum(
+            s.current_demand for s in self.scenario.shelters
         )
 
     # -----------------------------

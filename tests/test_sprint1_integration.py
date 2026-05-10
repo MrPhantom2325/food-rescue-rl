@@ -44,7 +44,8 @@ def test_full_mini_episode_no_agent():
 
         # Donors age batches
         for d in scn.donors:
-            total_spoiled += d.tick_pending_batches()
+            count, _ = d.tick_pending_batches()
+            total_spoiled += count
 
         # Shelters grow demand
         for s in scn.shelters:
