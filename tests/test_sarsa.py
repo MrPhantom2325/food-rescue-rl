@@ -5,7 +5,6 @@ import os
 import tempfile
 
 import numpy as np
-import pytest
 
 from agents.q_learning import QLearningConfig, discretize_state
 from agents.sarsa import SARSAAgent
@@ -32,8 +31,8 @@ class TestSARSAInheritance:
 
 
 class TestSARSAUpdate:
-    def test_update_uses_next_action_not_max(self):
-        """SARSA should bootstrap from Q(s', next_action), not max."""
+    def test_update_uses_next_action_value(self):
+        """SARSA bootstrap should use Q(s', next_action), not max over actions."""
         env = FoodRescueEnv()
         env.reset(seed=42)
         agent = SARSAAgent(
@@ -43,32 +42,68 @@ class TestSARSAUpdate:
         )
         agent.set_training(True)
 
-        # Manually populate Q-row for the state we'll arrive at, with action 0
-        # having a HIGH value and action 5 having a LOW value
-        s_before = discretize_state(env)
-        action = 0
-        obs, reward, term, trunc, _ = env.step(action)
-        s_after = discretize_state(env)
+        # Both env_before and env_after refer to the same env state for this unit test.
+        # state_before == state_after, but that's fine — we're testing the math of
+        # the target computation, not state transitions.
+        state = discretize_state(env)
 
-        # Plant Q-values for s_after
-        agent._ensure_q_row(s_after)[0] = 100.0
-        agent._ensure_q_row(s_after)[5] = -100.0
+        # Pre-create the row so the bootstrap reads our planted values
+        agent._ensure_q_row(state)
+        # Plant: action 0 has high Q, action 5 has very negative Q
+        agent._q_table[state][0] = 100.0
+        agent._q_table[state][5] = -100.0
 
-        # Update with next_action=5 (which has Q=-100)
-        # SARSA: target = reward + 1.0 * Q(s', 5) = reward + (-100)
+        # Take action 0, get reward=1, bootstrap from action 5 (low value)
+        # SARSA target = reward + 1.0 * Q(state, 5) = 1.0 + (-100.0) = -99.0
+        # Update for Q(state, 0): old=100, lr=1.0
+        #   new = 100 + 1.0 * (-99.0 - 100) = -99.0
         agent.update_from_transition(
-            env_before=env, action=action, reward=reward,
+            env_before=env, action=0, reward=1.0,
             env_after=env, done=False, next_action=5,
         )
 
-        q_before_row = agent._q_table[s_before]
-        # Update is: 0 + 1.0 * (reward + (-100) - 0) = reward - 100
-        # Specifically the result should be NEGATIVE (much less than reward+100, which
-        # is what Q-learning would have produced via max).
-        # We just assert it's much less than +50 (which would be the case if max_action was used)
-        assert q_before_row[action] < 50.0, (
-            f"SARSA update should use next_action=5 (Q=-100), got {q_before_row[action]}"
+        # The Q-value of action 0 should now reflect the LOW bootstrap (next_action=5)
+        # If SARSA had used max instead (which would be Q[0]=100 itself), the update
+        # would have been: 100 + 1.0 * (1.0 + 100 - 100) = 101, not -99.
+        # So a negative or near-zero value here proves SARSA used next_action.
+        result = agent._q_table[state][0]
+        assert result < 0, (
+            f"SARSA update should bootstrap from Q(s', next_action=5)=-100, "
+            f"giving target near -99. Got Q[0] = {result}."
         )
+
+    def test_update_with_high_next_action_value(self):
+        """Mirror test: bootstrapping from a high-value next_action should push Q up."""
+        env = FoodRescueEnv()
+        env.reset(seed=42)
+        agent = SARSAAgent(
+            num_actions=env.action_space.n,
+            config=QLearningConfig(learning_rate=1.0, discount=1.0, optimistic_init=0.0),
+            seed=0,
+        )
+        agent.set_training(True)
+
+        state = discretize_state(env)
+        agent._ensure_q_row(state)
+        agent._q_table[state][0] = 0.0
+        agent._q_table[state][7] = 50.0
+
+        # SARSA target = 1.0 + 1.0 * Q(state, 7) = 1.0 + 50.0 = 51.0
+        # Update Q(state, 0): 0 + 1.0 * (51.0 - 0) = 51.0
+        agent.update_from_transition(
+            env_before=env, action=0, reward=1.0,
+            env_after=env, done=False, next_action=7,
+        )
+        assert agent._q_table[state][0] > 40.0
+
+    def test_no_update_in_eval_mode(self):
+        env = FoodRescueEnv()
+        env.reset(seed=42)
+        agent = SARSAAgent(num_actions=env.action_space.n, seed=0)
+        agent.set_training(False)
+        agent.update_from_transition(env_before=env, action=0, reward=10.0,
+                                     env_after=env, done=False, next_action=0)
+        assert agent.table_size() == 0
 
     def test_no_update_in_eval_mode(self):
         env = FoodRescueEnv()

@@ -28,9 +28,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-import numpy as np
 
-from agents.q_learning import QLearningAgent, QLearningConfig, discretize_state
+from agents.q_learning import QLearningAgent, discretize_state
 from sim.environment import FoodRescueEnv
 
 
