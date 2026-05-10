@@ -1,6 +1,6 @@
 donor_id,name,type,x,y,arrival_rate,avg_quantity,shelf_life_min,shelf_life_max,arrival_rate_norm,avg_quantity_norm,shelf_life_avg
-D001,Green Garden Restaurant,restaurant,2,3,0.3,15,20,60,1.0,0.6,40.0
-D002,FreshMart Supermarket,supermarket,7,2,0.25,25,30,90,0.8333333333333334,1.0,60.0
-D003,Sunrise Cafe,cafe,1,8,0.2,10,20,50,0.6666666666666667,0.4,35.0
-D004,Metro Hotel Kitchen,hotel,8,7,0.28,22,25,70,0.9333333333333335,0.88,47.5
-D005,Community Bakery,bakery,4,5,0.22,10,15,40,0.7333333333333334,0.4,27.5
+D001,Green Garden Restaurant,restaurant,2,3,0.15,8,20,60,1.0,0.6666666666666666,40.0
+D002,FreshMart Supermarket,supermarket,7,2,0.13,12,30,90,0.8666666666666667,1.0,60.0
+D003,Sunrise Cafe,cafe,1,8,0.11,6,20,50,0.7333333333333334,0.5,35.0
+D004,Metro Hotel Kitchen,hotel,8,7,0.14,10,25,70,0.9333333333333335,0.8333333333333334,47.5
+D005,Community Bakery,bakery,4,5,0.12,6,15,40,0.8,0.5,27.5

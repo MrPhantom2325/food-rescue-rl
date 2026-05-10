@@ -43,3 +43,23 @@ When you modify a scenario, append an entry:
 - What changed
 - Why
 - Migration notes (if behavior of trained policies changes)
+
+### `weekday` v1.1 — 2026-05-10
+- **Rebalanced supply to be feasible for the fleet.**
+- Dropped donor arrival rates and avg quantities by ~40-50%.
+- Reason: v1.0 generated 1500+ units of supply per episode while a 2-vehicle
+  fleet can only move ~520 units max. Result was 80%+ guaranteed spoilage and
+  RL having no room to demonstrate improvement over a greedy baseline.
+- v1.1 expected supply: ~440 units, fleet throughput: ~520. Feasible.
+
+### `weekend` v1.1 — 2026-05-10
+- Same rebalance as weekday, scaled up modestly.
+- v1.1 expected supply: ~620 units. Slight spoilage even with good policy
+  preserves the "weekend has more donations than fleet can perfectly handle"
+  flavor.
+
+### `holiday_rush` v1.1 — 2026-05-10
+- Same rebalance, scaled up further but with shorter shelf lives.
+- v1.1 expected supply: ~920 units. Genuinely over-supplied — even good
+  policies should see some spoilage, making this the hardest scenario.
+- Shorter shelf lives (15-90 vs 20-120 originally) keep time pressure.

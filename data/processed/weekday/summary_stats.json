@@ -5,7 +5,7 @@
   "num_shelters": 5,
   "grid_size": 10,
   "episode_length": 200,
-  "total_expected_supply_per_episode": 1480.0,
+  "total_expected_supply_per_episode": 462.0000000000001,
   "total_expected_demand_per_episode": 200.0,
   "min_donor_shelter_distance": 2,
   "max_donor_shelter_distance": 12,

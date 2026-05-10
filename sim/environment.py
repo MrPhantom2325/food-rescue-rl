@@ -486,7 +486,7 @@ class FoodRescueEnv(gym.Env):
             - w.oversupply_penalty * wasted
             - w.spoilage * spoiled
             - w.distance * distance
-            - w.unmet_demand * (unmet / 100.0)  # divide to keep reward magnitudes balanced
+            - w.unmet_demand * (unmet / 500.0)  # softer signal; was /100, dominated reward
         )
         return float(reward)
 
