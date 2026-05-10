@@ -14,12 +14,12 @@ venv/
 .ipynb_checkpoints/
 
 # RL outputs (regeneratable, not git-tracked)
-experiments/policies/*.pkl
-experiments/policies/*.pt
-experiments/results/*.csv
-experiments/results/*.json
-experiments/figures/*.png
-experiments/videos/*.mp4
+# experiments/policies/*.pkl
+# experiments/policies/*.pt
+# experiments/results/*.csv
+# experiments/results/*.json
+# experiments/figures/*.png
+# experiments/videos/*.mp4
 
 # MLflow local server
 mlruns/

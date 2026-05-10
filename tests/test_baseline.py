@@ -1,6 +1,5 @@
 """Unit tests for baseline policies."""
 
-import numpy as np
 import pytest
 
 from sim.environment import FoodRescueEnv
