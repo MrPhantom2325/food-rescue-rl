@@ -151,12 +151,3 @@ class TestObservation:
 
 
 # -----------------------------
-# Step stub
-# -----------------------------
-
-class TestStepNotYetImplemented:
-    def test_step_raises(self):
-        env = FoodRescueEnv()
-        env.reset(seed=42)
-        with pytest.raises(NotImplementedError):
-            env.step(0)

@@ -219,7 +219,7 @@ class FoodRescueEnv(gym.Env):
         # Per-donor features
         for d in scn.donors:
             qty = d.total_pending_quantity()
-            qty_norm = qty / max(d.avg_quantity, 1.0)  # 1.0 ~= one batch's worth
+            qty_norm = min(qty / max(d.avg_quantity, 1.0), 10.0)  # cap at 10x avg
             min_sl = d.min_pending_shelf_life()
             sl_norm = min(min_sl / d.shelf_life_max, 1.0) if d.shelf_life_max > 0 else 1.0
             dist = self._manhattan(v.location, d.location)

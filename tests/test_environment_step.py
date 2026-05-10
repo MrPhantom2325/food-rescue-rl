@@ -49,16 +49,20 @@ class TestStepBasics:
 
 
 class TestActionEffects:
-    def test_donor_action_sets_target(self):
+    def test_donor_action_recorded_in_info(self):
         env = FoodRescueEnv()
         env.reset(seed=42)
-        # Acting vehicle is index 0 currently
-        v = env.vehicles[0]
-        env.step(0)  # action 0 = donor 0
-        # After step, target was set then possibly cleared if arrived. At minimum,
-        # the vehicle moved one step toward the donor.
-        # The cleaner test: distance_traveled is at least 0, action_kind was 'donor'.
-        # We check via the info dict from a fresh step.
+        _, _, _, _, info = env.step(0)  # action 0 = donor 0
+        assert info["action_kind"] == "donor"
+        assert info["action_target_id"] == env.scenario.donors[0].donor_id
+
+    def test_shelter_action_recorded_in_info(self):
+        env = FoodRescueEnv()
+        env.reset(seed=42)
+        shelter_action = env.num_donors  # first shelter action
+        _, _, _, _, info = env.step(shelter_action)
+        assert info["action_kind"] == "shelter"
+        assert info["action_target_id"] == env.scenario.shelters[0].shelter_id
 
     def test_idle_action_keeps_vehicle_idle(self):
         env = FoodRescueEnv()
