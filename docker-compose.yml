@@ -1,0 +1,51 @@
+# docker-compose.yml
+
+services:
+  mlflow:
+    image: python:3.11-slim
+    working_dir: /mlflow
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+    ports:
+      - "5000:5000"
+    command: >
+      sh -c "pip install mlflow --quiet &&
+             mlflow server
+               --backend-store-uri file:///mlflow/mlruns
+               --default-artifact-root file:///mlflow/mlruns
+               --host 0.0.0.0
+               --port 5000"
+
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    environment:
+      - CONFIG=${CONFIG:-configs/qlearning_v1.yaml}
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - PYTORCH_DEVICE=cpu
+    volumes:
+      - ./mlruns:/app/mlruns # persist runs on host
+      - ./experiments:/app/experiments # persist artifacts on host
+      - ./data:/app/data # raw + processed data
+    depends_on:
+      - mlflow
+    profiles:
+      - train # only starts with: docker compose --profile train up
+
+  serve:
+    build:
+      context: .
+      dockerfile: Dockerfile.serve
+    ports:
+      - "8000:8000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - PYTORCH_DEVICE=cpu
+    volumes:
+      - ./mlruns:/app/mlruns
+      - ./experiments:/app/experiments
+    depends_on:
+      - mlflow
+    profiles:
+      - serve # only starts with: docker compose --profile serve up

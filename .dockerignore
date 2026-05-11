@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# MLflow artifacts (mounted at runtime, not baked in)
+mlruns/
+
+# Experiment outputs (large, gitignored already)
+experiments/policies/
+experiments/results/
+experiments/figures/
+experiments/videos/
+
+# Git
+.git/
+.gitignore
+
+# Docs / editor noise
+*.md
+.DS_Store
+.idea/
+.vscode/
+
+# Tests (not needed in prod images)
+tests/
+
+# Handoff / scratch files
+PROJECT_HANDOFF.md

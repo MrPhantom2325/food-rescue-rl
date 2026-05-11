@@ -1,0 +1,1254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Food Rescue RL — Live Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0f0e;
+        --bg2: #131614;
+        --bg3: #1a1e1c;
+        --border: rgba(255, 255, 255, 0.07);
+        --border-hi: rgba(255, 255, 255, 0.14);
+        --text: #e8ede9;
+        --text-muted: #6b7a6e;
+        --text-dim: #3d4a3f;
+        --green: #3ddc84;
+        --green-dim: #1a4a2e;
+        --orange: #ff7043;
+        --orange-dim: #4a1f12;
+        --blue: #4fc3f7;
+        --blue-dim: #0d2d3f;
+        --amber: #ffb74d;
+        --amber-dim: #3f2d0d;
+        --red: #ef5350;
+        --mono: "JetBrains Mono", monospace;
+        --sans: "Space Grotesk", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        overflow: hidden;
+      }
+
+      /* ── Layout ── */
+      #app {
+        display: grid;
+        grid-template-rows: 44px 1fr 48px;
+        height: 100vh;
+      }
+
+      /* ── Top bar ── */
+      #topbar {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        padding: 0 20px;
+        background: var(--bg2);
+      }
+      .tb-pill {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+        padding: 0 12px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border-right: 1px solid var(--border);
+      }
+      .tb-pill:first-child {
+        border-left: none;
+      }
+      .tb-pill .hi {
+        color: var(--text);
+      }
+      .tb-pill .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      #tb-logo {
+        margin-right: auto;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        color: var(--text);
+      }
+
+      /* ── Main area ── */
+      #main {
+        display: grid;
+        grid-template-columns: 1fr 230px;
+        overflow: hidden;
+      }
+
+      /* ── Canvas area ── */
+      #canvas-area {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+        padding: 12px;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+
+      /* ── Side panel ── */
+      #panel {
+        border-left: 1px solid var(--border);
+        background: var(--bg2);
+        overflow-y: auto;
+        padding: 0;
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+      .p-section {
+        border-bottom: 1px solid var(--border);
+        padding: 14px 16px;
+      }
+      .p-label {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 10px;
+      }
+      .p-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 6px;
+      }
+      .p-row:last-child {
+        margin-bottom: 0;
+      }
+      .p-key {
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+      .p-val {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .p-val.green {
+        color: var(--green);
+      }
+      .p-val.orange {
+        color: var(--orange);
+      }
+      .p-val.blue {
+        color: var(--blue);
+      }
+      .p-val.amber {
+        color: var(--amber);
+      }
+      .p-val.red {
+        color: var(--red);
+      }
+      .p-val.big {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      /* reward bar */
+      #reward-bar-wrap {
+        margin-top: 8px;
+        height: 3px;
+        background: var(--bg3);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      #reward-bar {
+        height: 100%;
+        width: 50%;
+        background: var(--green);
+        transition:
+          width 0.3s,
+          background 0.3s;
+      }
+
+      /* action badges */
+      .act-badge {
+        display: inline-block;
+        font-size: 10px;
+        padding: 2px 7px;
+        border-radius: 3px;
+        margin-top: 4px;
+        font-weight: 500;
+        background: var(--bg3);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+      }
+      .act-badge.donor {
+        background: var(--green-dim);
+        color: var(--green);
+        border-color: rgba(61, 220, 132, 0.2);
+      }
+      .act-badge.shelter {
+        background: var(--orange-dim);
+        color: var(--orange);
+        border-color: rgba(255, 112, 67, 0.2);
+      }
+      .act-badge.idle {
+        color: var(--text-dim);
+      }
+
+      /* mini sparkline */
+      #spark-wrap {
+        margin-top: 8px;
+      }
+      #spark {
+        width: 100%;
+        height: 36px;
+      }
+
+      /* ── Bottom controls ── */
+      #controls {
+        border-top: 1px solid var(--border);
+        background: var(--bg2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 16px;
+      }
+      .btn {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 6px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 1px solid var(--border-hi);
+        background: var(--bg3);
+        color: var(--text);
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--bg);
+        border-color: var(--green);
+        color: var(--green);
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn.primary {
+        background: var(--green-dim);
+        border-color: rgba(61, 220, 132, 0.3);
+        color: var(--green);
+      }
+      .btn.primary:hover {
+        background: rgba(61, 220, 132, 0.2);
+      }
+
+      #prog-outer {
+        flex: 1;
+        height: 3px;
+        background: var(--bg3);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      #prog-inner {
+        height: 100%;
+        width: 0;
+        background: var(--green);
+        transition: width 0.12s linear;
+      }
+      #speed-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      #speed {
+        width: 70px;
+        accent-color: var(--green);
+      }
+      #step-ct {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        min-width: 60px;
+        text-align: right;
+      }
+
+      /* ── Legend ── */
+      #legend {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        background: rgba(13, 15, 14, 0.85);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-family: var(--mono);
+        font-size: 10px;
+      }
+      .leg {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--text-muted);
+      }
+      .leg svg {
+        flex-shrink: 0;
+      }
+
+      /* scenario selector */
+      #scenario-select {
+        font-family: var(--mono);
+        font-size: 11px;
+        background: var(--bg3);
+        color: var(--text);
+        border: 1px solid var(--border-hi);
+        border-radius: 4px;
+        padding: 5px 8px;
+        cursor: pointer;
+        outline: none;
+      }
+      #scenario-select:focus {
+        border-color: var(--green);
+      }
+
+      /* policy selector */
+      #policy-select {
+        font-family: var(--mono);
+        font-size: 11px;
+        background: var(--bg3);
+        color: var(--text);
+        border: 1px solid var(--border-hi);
+        border-radius: 4px;
+        padding: 5px 8px;
+        cursor: pointer;
+        outline: none;
+      }
+
+      /* tooltip */
+      #tooltip {
+        position: absolute;
+        pointer-events: none;
+        display: none;
+        background: var(--bg2);
+        border: 1px solid var(--border-hi);
+        border-radius: 6px;
+        padding: 7px 10px;
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text);
+        line-height: 1.6;
+        z-index: 10;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Top bar -->
+      <div id="topbar">
+        <div id="tb-logo">🥗 Food Rescue RL</div>
+        <div class="tb-pill">
+          <div class="dot"></div>
+          LIVE
+        </div>
+        <div class="tb-pill">
+          scenario <span class="hi" id="tb-scenario">weekday</span>
+        </div>
+        <div class="tb-pill">
+          step <span class="hi" id="tb-step">0</span>/200
+        </div>
+        <div class="tb-pill"><span class="hi" id="tb-time">morning</span></div>
+        <div class="tb-pill">
+          policy <span class="hi" id="tb-policy">DQN</span>
+        </div>
+      </div>
+
+      <!-- Main -->
+      <div id="main">
+        <!-- Canvas -->
+        <div id="canvas-area">
+          <canvas id="c"></canvas>
+          <div id="legend">
+            <div class="leg">
+              <svg width="13" height="13">
+                <rect
+                  x="1"
+                  y="1"
+                  width="11"
+                  height="11"
+                  rx="2"
+                  fill="#3ddc84"
+                /></svg
+              >Donor (food pending)
+            </div>
+            <div class="leg">
+              <svg width="13" height="13">
+                <rect
+                  x="1"
+                  y="1"
+                  width="11"
+                  height="11"
+                  rx="2"
+                  fill="#444"
+                /></svg
+              >Donor (empty)
+            </div>
+            <div class="leg">
+              <svg width="13" height="13">
+                <circle cx="6.5" cy="6.5" r="5.5" fill="#ff7043" /></svg
+              >Shelter (unmet demand)
+            </div>
+            <div class="leg">
+              <svg width="13" height="13">
+                <circle
+                  cx="6.5"
+                  cy="6.5"
+                  r="5.5"
+                  fill="none"
+                  stroke="#ffb74d"
+                  stroke-width="1.5"
+                  stroke-dasharray="3,2"
+                /></svg
+              >Priority shelter
+            </div>
+            <div class="leg">
+              <svg width="13" height="13">
+                <polygon
+                  points="6.5,1 12,12 1,12"
+                  fill="none"
+                  stroke="#4fc3f7"
+                  stroke-width="1.5"
+                /></svg
+              >Vehicle (empty)
+            </div>
+            <div class="leg">
+              <svg width="13" height="13">
+                <polygon points="6.5,1 12,12 1,12" fill="#4fc3f7" /></svg
+              >Vehicle (loaded)
+            </div>
+          </div>
+          <div id="tooltip"></div>
+        </div>
+
+        <!-- Side panel -->
+        <div id="panel">
+          <div class="p-section">
+            <div class="p-label">Run</div>
+            <div class="p-row">
+              <span class="p-key">scenario</span
+              ><span class="p-val blue" id="p-scenario">weekday</span>
+            </div>
+            <div class="p-row">
+              <span class="p-key">step</span
+              ><span class="p-val" id="p-step">0 / 200</span>
+            </div>
+            <div class="p-row">
+              <span class="p-key">policy</span
+              ><span class="p-val" id="p-policy">DQN</span>
+            </div>
+          </div>
+
+          <div class="p-section">
+            <div class="p-label">Reward</div>
+            <div class="p-row">
+              <span class="p-key">last step</span
+              ><span class="p-val" id="p-lastr">+0.00</span>
+            </div>
+            <div class="p-row">
+              <span class="p-key">total</span
+              ><span class="p-val big green" id="p-total">+0.00</span>
+            </div>
+            <div id="reward-bar-wrap"><div id="reward-bar"></div></div>
+            <div id="spark-wrap">
+              <svg id="spark" viewBox="0 0 198 36" preserveAspectRatio="none">
+                <polyline
+                  id="spark-line"
+                  points=""
+                  fill="none"
+                  stroke="#3ddc84"
+                  stroke-width="1.2"
+                  opacity="0.7"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div class="p-section">
+            <div class="p-label">Metrics</div>
+            <div class="p-row">
+              <span class="p-key">delivered</span
+              ><span class="p-val green" id="p-del">0 units</span>
+            </div>
+            <div class="p-row">
+              <span class="p-key">spoiled</span
+              ><span class="p-val orange" id="p-spo">0 units</span>
+            </div>
+            <div class="p-row">
+              <span class="p-key">distance</span
+              ><span class="p-val" id="p-dist">0 cells</span>
+            </div>
+            <div class="p-row">
+              <span class="p-key">deliveries</span
+              ><span class="p-val" id="p-trips">0</span>
+            </div>
+            <div class="p-row">
+              <span class="p-key">unmet demand</span
+              ><span class="p-val red" id="p-unmet">0 units</span>
+            </div>
+          </div>
+
+          <div class="p-section">
+            <div class="p-label">Last Action</div>
+            <div class="p-row" style="flex-direction: column; gap: 5px">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span class="p-key">V0</span>
+                <span id="p-a0-badge" class="act-badge idle">—</span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span class="p-key">V1</span>
+                <span id="p-a1-badge" class="act-badge idle">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-section">
+            <div class="p-label">Fleet</div>
+            <div id="fleet-detail"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div id="controls">
+        <select id="scenario-select">
+          <option value="weekday">weekday</option>
+          <option value="weekend">weekend</option>
+          <option value="holiday_rush">holiday_rush</option>
+        </select>
+        <select id="policy-select">
+          <option value="dqn">DQN</option>
+          <option value="random">random</option>
+        </select>
+        <button class="btn" id="btn-reset">↺ reset</button>
+        <button class="btn primary" id="btn-step">step ▶</button>
+        <button class="btn" id="btn-play">auto ▶▶</button>
+        <div id="prog-outer"><div id="prog-inner"></div></div>
+        <div id="speed-wrap">
+          spd
+          <input type="range" id="speed" min="1" max="10" value="5" step="1" />
+        </div>
+        <span id="step-ct">0 / 200</span>
+      </div>
+    </div>
+
+    <script>
+      // ── Constants ──────────────────────────────────────────────────
+      const COLS = 10,
+        ROWS = 10,
+        MAX_STEPS = 200;
+      const CELL = 46,
+        PAD = 28;
+      const W = PAD * 2 + CELL * COLS;
+      const H = PAD * 2 + CELL * ROWS;
+
+      const cv = document.getElementById("c");
+      cv.width = W;
+      cv.height = H;
+      const ctx = cv.getContext("2d");
+
+      // ── PRNG ───────────────────────────────────────────────────────
+      function mkRng(seed) {
+        let s = seed >>> 0;
+        return function () {
+          s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+          return s / 4294967296;
+        };
+      }
+
+      // ── Scenario configs ───────────────────────────────────────────
+      const SCENARIOS = {
+        weekday: {
+          supply: [6, 14],
+          ttl: [22, 48],
+          demand: [3, 9],
+          respawn: 0.55,
+          priority_count: 1,
+        },
+        weekend: {
+          supply: [8, 18],
+          ttl: [18, 40],
+          demand: [4, 12],
+          respawn: 0.7,
+          priority_count: 2,
+        },
+        holiday_rush: {
+          supply: [10, 22],
+          ttl: [14, 30],
+          demand: [6, 16],
+          respawn: 0.85,
+          priority_count: 3,
+        },
+      };
+
+      // ── State init ─────────────────────────────────────────────────
+      let S,
+        playing = false,
+        timer = null,
+        rewardHistory = [];
+      let currentScenario = "weekday";
+
+      function initState(scenario = "weekday", seed = null) {
+        const cfg = SCENARIOS[scenario];
+        seed = seed ?? (Math.random() * 99999) | 0;
+        const r = mkRng(seed);
+        const rand = (a, b) => a + Math.floor(r() * (b - a + 1));
+
+        const taken = new Set();
+        const pos = () => {
+          let k;
+          do {
+            k = `${rand(0, 9)},${rand(0, 9)}`;
+          } while (taken.has(k));
+          taken.add(k);
+          return k.split(",").map(Number);
+        };
+
+        const donors = Array.from({ length: 5 }, (_, i) => {
+          const [x, y] = pos();
+          return {
+            id: "D00" + (i + 1),
+            x,
+            y,
+            units: rand(...cfg.supply),
+            ttl: rand(...cfg.ttl),
+          };
+        });
+
+        const shelters = Array.from({ length: 5 }, (_, i) => {
+          const [x, y] = pos();
+          return {
+            id: "S00" + (i + 1),
+            x,
+            y,
+            unmet: rand(...cfg.demand),
+            priority: i < cfg.priority_count,
+          };
+        });
+
+        const vehicles = [
+          {
+            id: "V0",
+            x: rand(0, 9),
+            y: rand(0, 9),
+            load: 0,
+            cap: 20,
+            target: null,
+            kind: null,
+            path: [],
+          },
+          {
+            id: "V1",
+            x: rand(0, 9),
+            y: rand(0, 9),
+            load: 0,
+            cap: 20,
+            target: null,
+            kind: null,
+            path: [],
+          },
+        ];
+
+        return {
+          step: 0,
+          scenario,
+          seed,
+          cfg,
+          r,
+          donors,
+          shelters,
+          vehicles,
+          totalReward: 0,
+          lastReward: 0,
+          delivered: 0,
+          spoiled: 0,
+          distance: 0,
+          trips: 0,
+          lastAction: ["—", "—"],
+          lastActionKind: ["idle", "idle"],
+        };
+      }
+
+      // ── Policies ───────────────────────────────────────────────────
+      function policyGreedy(v, state) {
+        // avoid same target as the other vehicle
+        const other = state.vehicles.find((x) => x.id !== v.id);
+        if (v.load === 0) {
+          let best = null,
+            bestScore = Infinity;
+          state.donors.forEach((d) => {
+            if (d.units <= 0) return;
+            const dist = Math.abs(v.x - d.x) + Math.abs(v.y - d.y);
+            const penalty = other && other.target === d.id ? 3 : 0;
+            const score = dist + penalty;
+            if (score < bestScore) {
+              bestScore = score;
+              best = d;
+            }
+          });
+          return best
+            ? { kind: "donor", target: best.id }
+            : { kind: "idle", target: null };
+        } else {
+          let best = null,
+            bestScore = Infinity;
+          state.shelters.forEach((sh) => {
+            if (sh.unmet <= 0) return;
+            const dist = Math.abs(v.x - sh.x) + Math.abs(v.y - sh.y);
+            const pBonus = sh.priority ? -4 : 0;
+            const penalty = other && other.target === sh.id ? 3 : 0;
+            const score = dist + pBonus + penalty;
+            if (score < bestScore) {
+              bestScore = score;
+              best = sh;
+            }
+          });
+          return best
+            ? { kind: "shelter", target: best.id }
+            : { kind: "idle", target: null };
+        }
+      }
+
+      function policyRandom(v, state) {
+        const r = state.r;
+        const choices = [
+          ...state.donors
+            .filter((d) => d.units > 0)
+            .map((d) => ({ kind: "donor", target: d.id })),
+          ...state.shelters
+            .filter((s) => s.unmet > 0)
+            .map((s) => ({ kind: "shelter", target: s.id })),
+          { kind: "idle", target: null },
+        ];
+        return choices[Math.floor(r() * choices.length)];
+      }
+
+      function getPolicy() {
+        const p = document.getElementById("policy-select").value;
+        return p === "random" ? policyRandom : policyGreedy;
+      }
+
+      // ── Simulation step ────────────────────────────────────────────
+      function moveToward(v, tx, ty) {
+        const dx = tx - v.x,
+          dy = ty - v.y;
+        if (dx !== 0) {
+          v.x += dx > 0 ? 1 : -1;
+          return 1;
+        }
+        if (dy !== 0) {
+          v.y += dy > 0 ? 1 : -1;
+          return 1;
+        }
+        return 0;
+      }
+
+      function stepSim() {
+        if (S.step >= MAX_STEPS) return;
+        S.step++;
+        const policy = getPolicy();
+        let stepReward = 0;
+        const actions = [],
+          actionKinds = [];
+
+        S.vehicles.forEach((v, vi) => {
+          const act = policy(v, S);
+          v.target = act.target;
+          v.kind = act.kind;
+
+          if (act.kind === "donor") {
+            const d = S.donors.find((x) => x.id === act.target);
+            const moved = moveToward(v, d.x, d.y);
+            S.distance += moved;
+            stepReward -= moved * 0.1;
+            if (v.x === d.x && v.y === d.y && d.units > 0) {
+              const pick = Math.min(v.cap - v.load, d.units);
+              v.load += pick;
+              d.units -= pick;
+            }
+            actions.push("donor " + act.target);
+            actionKinds.push("donor");
+          } else if (act.kind === "shelter") {
+            const sh = S.shelters.find((x) => x.id === act.target);
+            const moved = moveToward(v, sh.x, sh.y);
+            S.distance += moved;
+            stepReward -= moved * 0.1;
+            if (v.x === sh.x && v.y === sh.y && v.load > 0) {
+              const drop = Math.min(v.load, sh.unmet);
+              v.load -= drop;
+              sh.unmet -= drop;
+              S.delivered += drop;
+              S.trips++;
+              stepReward += drop * 10 + (sh.priority ? 0.5 * drop : 0);
+            }
+            actions.push("shelter " + act.target);
+            actionKinds.push("shelter");
+          } else {
+            actions.push("idle");
+            actionKinds.push("idle");
+          }
+        });
+
+        // Spoilage
+        S.donors.forEach((d) => {
+          if (d.units > 0) {
+            d.ttl--;
+            if (d.ttl <= 0) {
+              S.spoiled += d.units;
+              stepReward -= 5 * d.units;
+              d.units = 0;
+              d.ttl = 0;
+            }
+          }
+        });
+
+        // Respawn every 25 steps
+        if (S.step % 25 === 0) {
+          S.donors.forEach((d) => {
+            if (d.units === 0 && S.r() < S.cfg.respawn) {
+              d.units = Math.floor(S.r() * 14) + 4;
+              d.ttl = Math.floor(S.r() * 28) + 18;
+            }
+          });
+          S.shelters.forEach((sh) => {
+            sh.unmet = Math.max(sh.unmet, Math.floor(S.r() * 4) + 1);
+          });
+        }
+
+        S.lastReward = stepReward;
+        S.totalReward += stepReward;
+        S.lastAction = actions;
+        S.lastActionKind = actionKinds;
+        rewardHistory.push(S.totalReward);
+        if (rewardHistory.length > 200) rewardHistory.shift();
+
+        updatePanel();
+        draw();
+      }
+
+      // ── Drawing ────────────────────────────────────────────────────
+      const DARK_BG = "#0d0f0e";
+      const GRID_LINE = "rgba(255,255,255,0.045)";
+      const AXIS_TEXT = "rgba(255,255,255,0.18)";
+      const GREEN = "#3ddc84";
+      const GREEN_DARK = "#1a3d28";
+      const ORANGE = "#ff7043";
+      const BLUE = "#4fc3f7";
+      const AMBER = "#ffb74d";
+      const GRAY = "#3a3f3c";
+      const WHITE = "#e8ede9";
+      const WHITE_DIM = "rgba(232,237,233,0.45)";
+
+      function gx(col) {
+        return PAD + col * CELL + CELL / 2;
+      }
+      function gy(row) {
+        return PAD + row * CELL + CELL / 2;
+      }
+
+      function drawGrid() {
+        ctx.fillStyle = DARK_BG;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = GRID_LINE;
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i <= COLS; i++) {
+          ctx.beginPath();
+          ctx.moveTo(PAD + i * CELL, PAD);
+          ctx.lineTo(PAD + i * CELL, PAD + ROWS * CELL);
+          ctx.stroke();
+        }
+        for (let j = 0; j <= ROWS; j++) {
+          ctx.beginPath();
+          ctx.moveTo(PAD, PAD + j * CELL);
+          ctx.lineTo(PAD + COLS * CELL, PAD + j * CELL);
+          ctx.stroke();
+        }
+        ctx.fillStyle = AXIS_TEXT;
+        ctx.font = "10px JetBrains Mono, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let i = 0; i < COLS; i++)
+          ctx.fillText(i, PAD + i * CELL + CELL / 2, PAD - 10);
+        ctx.textAlign = "right";
+        for (let j = 0; j < ROWS; j++)
+          ctx.fillText(j, PAD - 8, PAD + j * CELL + CELL / 2);
+      }
+
+      function drawDonor(d) {
+        const x = gx(d.x),
+          y = gy(d.y),
+          s = 13;
+        const active = d.units > 0;
+        ctx.fillStyle = active ? "#1c3d28" : "#1e2120";
+        ctx.strokeStyle = active ? GREEN : GRAY;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.roundRect(x - s, y - s, s * 2, s * 2, 3);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = active ? GREEN : GRAY;
+        ctx.font = "bold 8px JetBrains Mono, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(d.id, x, y);
+        ctx.fillStyle = WHITE_DIM;
+        ctx.font = "9px JetBrains Mono, monospace";
+        ctx.textBaseline = "top";
+        ctx.fillText(d.units + "u · " + d.ttl + "t", x, y + s + 3);
+      }
+
+      function drawShelter(sh) {
+        const x = gx(sh.x),
+          y = gy(sh.y),
+          r = 12;
+        if (sh.priority) {
+          ctx.beginPath();
+          ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+          ctx.strokeStyle = AMBER;
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 3]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        const active = sh.unmet > 0;
+        ctx.fillStyle = active ? "#3d1a10" : "#1e2120";
+        ctx.strokeStyle = active ? ORANGE : GRAY;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = active ? ORANGE : GRAY;
+        ctx.font = "bold 8px JetBrains Mono, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(sh.id, x, y);
+        ctx.fillStyle = WHITE_DIM;
+        ctx.font = "9px JetBrains Mono, monospace";
+        ctx.textBaseline = "top";
+        ctx.fillText(sh.unmet + "u", x, y + r + 3);
+      }
+
+      function drawVehicle(v) {
+        const x = gx(v.x),
+          y = gy(v.y),
+          s = 11;
+        // Draw dashed line to target
+        if (v.target) {
+          const t =
+            v.kind === "donor"
+              ? S.donors.find((d) => d.id === v.target)
+              : S.shelters.find((sh) => sh.id === v.target);
+          if (t) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(gx(t.x), gy(t.y));
+            ctx.strokeStyle = "rgba(79,195,247,0.2)";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+        const loaded = v.load > 0;
+        ctx.fillStyle = loaded ? BLUE : "transparent";
+        ctx.strokeStyle = BLUE;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(x, y - s);
+        ctx.lineTo(x + s, y + s);
+        ctx.lineTo(x - s, y + s);
+        ctx.closePath();
+        if (loaded) ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = WHITE;
+        ctx.font = "bold 9px JetBrains Mono, monospace";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(v.id, x + s + 3, y + 1);
+        ctx.fillStyle = loaded ? BLUE : WHITE_DIM;
+        ctx.font = "9px JetBrains Mono, monospace";
+        ctx.textBaseline = "top";
+        ctx.fillText(v.load + "/" + v.cap, x + s + 3, y + 3);
+      }
+
+      function draw() {
+        drawGrid();
+        S.donors.forEach(drawDonor);
+        S.shelters.forEach(drawShelter);
+        S.vehicles.forEach(drawVehicle);
+        updateSparkline();
+      }
+
+      // ── Sparkline ──────────────────────────────────────────────────
+      function updateSparkline() {
+        const h = rewardHistory;
+        if (h.length < 2) return;
+        const mn = Math.min(...h),
+          mx = Math.max(...h);
+        const range = mx - mn || 1;
+        const W2 = 198,
+          H2 = 34;
+        const pts = h
+          .map(
+            (v, i) =>
+              `${((i / (h.length - 1)) * W2).toFixed(1)},${(H2 - ((v - mn) / range) * H2).toFixed(1)}`,
+          )
+          .join(" ");
+        document.getElementById("spark-line").setAttribute("points", pts);
+        const isPos = h[h.length - 1] >= 0;
+        document
+          .getElementById("spark-line")
+          .setAttribute("stroke", isPos ? "#3ddc84" : "#ff7043");
+      }
+
+      // ── Panel update ───────────────────────────────────────────────
+      function timeOfDay(step) {
+        if (step < 67) return "morning";
+        if (step < 134) return "afternoon";
+        return "evening";
+      }
+
+      function fmt(n) {
+        return (n >= 0 ? "+" : "") + n.toFixed(2);
+      }
+
+      function setBadge(el, text, kind) {
+        el.textContent = text;
+        el.className = "act-badge " + kind;
+      }
+
+      function updatePanel() {
+        document.getElementById("tb-scenario").textContent = S.scenario;
+        document.getElementById("tb-step").textContent = S.step;
+        document.getElementById("tb-time").textContent = timeOfDay(S.step);
+        document.getElementById("tb-policy").textContent =
+          document.getElementById("policy-select").value;
+
+        document.getElementById("p-scenario").textContent = S.scenario;
+        document.getElementById("p-step").textContent = S.step + " / 200";
+        document.getElementById("p-policy").textContent =
+          document.getElementById("policy-select").value;
+
+        const lr = document.getElementById("p-lastr");
+        lr.textContent = fmt(S.lastReward);
+        lr.className = "p-val " + (S.lastReward >= 0 ? "green" : "red");
+
+        const tr = document.getElementById("p-total");
+        tr.textContent = fmt(S.totalReward);
+        tr.className = "p-val big " + (S.totalReward >= 0 ? "green" : "red");
+
+        // Reward bar: 0% = -max possible, 50% = 0, 100% = max
+        const barPct = Math.max(
+          0,
+          Math.min(100, 50 + (S.totalReward / 200) * 50),
+        );
+        const bar = document.getElementById("reward-bar");
+        bar.style.width = barPct + "%";
+        bar.style.background = S.totalReward >= 0 ? "#3ddc84" : "#ff7043";
+
+        document.getElementById("p-del").textContent = S.delivered + " units";
+        document.getElementById("p-spo").textContent = S.spoiled + " units";
+        document.getElementById("p-dist").textContent = S.distance + " cells";
+        document.getElementById("p-trips").textContent = S.trips;
+        const unmet = S.shelters.reduce((a, s) => a + s.unmet, 0);
+        document.getElementById("p-unmet").textContent = unmet + " units";
+
+        setBadge(
+          document.getElementById("p-a0-badge"),
+          S.lastAction[0] || "—",
+          S.lastActionKind[0] || "idle",
+        );
+        setBadge(
+          document.getElementById("p-a1-badge"),
+          S.lastAction[1] || "—",
+          S.lastActionKind[1] || "idle",
+        );
+
+        // Fleet detail
+        const fd = document.getElementById("fleet-detail");
+        fd.innerHTML = S.vehicles
+          .map(
+            (v) => `
+    <div class="p-row">
+      <span class="p-key">${v.id}</span>
+      <span class="p-val ${v.load > 0 ? "blue" : ""}">
+        ${v.load > 0 ? v.load + "/" + v.cap + " loaded" : "empty"}
+      </span>
+    </div>
+  `,
+          )
+          .join("");
+
+        document.getElementById("step-ct").textContent = S.step + " / 200";
+        document.getElementById("prog-inner").style.width =
+          (S.step / MAX_STEPS) * 100 + "%";
+      }
+
+      // ── Controls ───────────────────────────────────────────────────
+      function getInterval() {
+        const spd = parseInt(document.getElementById("speed").value);
+        return Math.round(500 / spd); // 50ms (fast) to 500ms (slow)
+      }
+
+      document.getElementById("btn-step").onclick = () => {
+        if (S.step < MAX_STEPS) stepSim();
+      };
+
+      document.getElementById("btn-play").onclick = function () {
+        playing = !playing;
+        this.textContent = playing ? "pause ⏸" : "auto ▶▶";
+        this.className = "btn " + (playing ? "primary" : "");
+        if (playing) {
+          const tick = () => {
+            if (!playing) return;
+            if (S.step >= MAX_STEPS) {
+              playing = false;
+              this.textContent = "auto ▶▶";
+              this.className = "btn";
+              return;
+            }
+            stepSim();
+            timer = setTimeout(tick, getInterval());
+          };
+          tick();
+        } else {
+          clearTimeout(timer);
+        }
+      };
+
+      document.getElementById("btn-reset").onclick = () => {
+        clearTimeout(timer);
+        playing = false;
+        document.getElementById("btn-play").textContent = "auto ▶▶";
+        document.getElementById("btn-play").className = "btn";
+        currentScenario = document.getElementById("scenario-select").value;
+        S = initState(currentScenario);
+        rewardHistory = [];
+        updatePanel();
+        draw();
+      };
+
+      document.getElementById("scenario-select").onchange = () => {
+        document.getElementById("btn-reset").click();
+      };
+
+      document.getElementById("policy-select").onchange = () => {
+        document.getElementById("tb-policy").textContent =
+          document.getElementById("policy-select").value;
+        document.getElementById("p-policy").textContent =
+          document.getElementById("policy-select").value;
+      };
+
+      // ── Canvas tooltip ─────────────────────────────────────────────
+      cv.addEventListener("mousemove", (e) => {
+        const rect = cv.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (W / rect.width);
+        const my = (e.clientY - rect.top) * (H / rect.height);
+        const col = Math.round((mx - PAD - CELL / 2) / CELL);
+        const row = Math.round((my - PAD - CELL / 2) / CELL);
+        const tip = document.getElementById("tooltip");
+
+        let found = null;
+        S.donors.forEach((d) => {
+          if (d.x === col && d.y === row) found = { type: "donor", obj: d };
+        });
+        S.shelters.forEach((sh) => {
+          if (sh.x === col && sh.y === row)
+            found = { type: "shelter", obj: sh };
+        });
+        S.vehicles.forEach((v) => {
+          if (v.x === col && v.y === row) found = { type: "vehicle", obj: v };
+        });
+
+        if (found) {
+          const o = found.obj;
+          let html = "";
+          if (found.type === "donor") {
+            html = `<b style="color:#3ddc84">${o.id}</b><br>units: ${o.units}<br>ttl: ${o.ttl} steps`;
+          } else if (found.type === "shelter") {
+            html = `<b style="color:#ff7043">${o.id}</b>${o.priority ? " ⭑ priority" : ""}<br>unmet: ${o.unmet}`;
+          } else {
+            html = `<b style="color:#4fc3f7">${o.id}</b><br>load: ${o.load}/${o.cap}<br>target: ${o.target || "none"}`;
+          }
+          tip.innerHTML = html;
+          tip.style.display = "block";
+          tip.style.left = e.clientX - rect.left + 12 + "px";
+          tip.style.top = e.clientY - rect.top + 12 + "px";
+        } else {
+          tip.style.display = "none";
+        }
+      });
+      cv.addEventListener("mouseleave", () => {
+        document.getElementById("tooltip").style.display = "none";
+      });
+
+      // ── Init ───────────────────────────────────────────────────────
+      S = initState("weekday");
+      draw();
+      updatePanel();
+    </script>
+  </body>
+</html>

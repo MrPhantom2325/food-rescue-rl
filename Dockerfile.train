@@ -1,0 +1,25 @@
+# Dockerfile.train
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System deps (minimal)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python deps first (layer caching)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source
+COPY . .
+
+# MPS won't work in Docker — force CPU
+ENV PYTORCH_DEVICE=cpu
+
+# Default config — override with:
+#   docker run -e CONFIG=configs/dqn_v1.yaml food-rescue-train
+ENV CONFIG=configs/qlearning_v1.yaml
+
+CMD ["sh", "-c", "python train.py --config $CONFIG"]
