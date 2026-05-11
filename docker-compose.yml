@@ -1,51 +1,77 @@
-# docker-compose.yml
+version: "3.9"
 
+# ── Shared network so containers can reach each other by name ──────────────
+networks:
+  rescue_net:
+    driver: bridge
+
+# ── Named volumes ──────────────────────────────────────────────────────────
+volumes:
+  mlflow_data:          # persists MLflow runs/artifacts between restarts
+  experiments_data:     # trained policies shared between train & serve
+
+# ══════════════════════════════════════════════════════════════════════════
 services:
+
+  # ── 1. MLflow tracking server ──────────────────────────────────────────
   mlflow:
-    image: python:3.11-slim
-    working_dir: /mlflow
-    volumes:
-      - ./mlruns:/mlflow/mlruns
+    image: ghcr.io/mlflow/mlflow:v2.10.0
+    container_name: food_rescue_mlflow
+    networks: [rescue_net]
     ports:
       - "5000:5000"
+    volumes:
+      - mlflow_data:/mlruns
     command: >
-      sh -c "pip install mlflow --quiet &&
-             mlflow server
-               --backend-store-uri file:///mlflow/mlruns
-               --default-artifact-root file:///mlflow/mlruns
-               --host 0.0.0.0
-               --port 5000"
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri /mlruns
+        --default-artifact-root /mlruns
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # ── 2. Training container (run-once, profile-gated) ────────────────────
   train:
+    profiles: [train]
     build:
       context: .
       dockerfile: Dockerfile.train
+    container_name: food_rescue_train
+    networks: [rescue_net]
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    volumes:
+      - experiments_data:/app/experiments   # persist trained policies
     environment:
       - CONFIG=${CONFIG:-configs/qlearning_v1.yaml}
       - MLFLOW_TRACKING_URI=http://mlflow:5000
-      - PYTORCH_DEVICE=cpu
-    volumes:
-      - ./mlruns:/app/mlruns # persist runs on host
-      - ./experiments:/app/experiments # persist artifacts on host
-      - ./data:/app/data # raw + processed data
-    depends_on:
-      - mlflow
-    profiles:
-      - train # only starts with: docker compose --profile train up
+    # Override CONFIG on the CLI:
+    # docker compose --profile train run -e CONFIG=configs/dqn_v2_holiday.yaml train
 
+  # ── 3. FastAPI inference server (profile-gated) ────────────────────────
   serve:
+    profiles: [serve]
     build:
       context: .
       dockerfile: Dockerfile.serve
+    container_name: food_rescue_api
+    networks: [rescue_net]
+    depends_on:
+      mlflow:
+        condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      - experiments_data:/app/experiments   # reads trained policies
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
-      - PYTORCH_DEVICE=cpu
-    volumes:
-      - ./mlruns:/app/mlruns
-      - ./experiments:/app/experiments
-    depends_on:
-      - mlflow
-    profiles:
-      - serve # only starts with: docker compose --profile serve up
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
