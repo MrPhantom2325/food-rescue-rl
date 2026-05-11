@@ -1,0 +1,88 @@
+{
+  "run_id": "random_baseline",
+  "agent": "random",
+  "scenario": "weekday",
+  "num_episodes": 100,
+  "seed": 42,
+  "git_commit": "e12dcfc8799327f7105366b937287a2df1eb4d4b",
+  "wall_time_seconds": 0.9291749000549316,
+  "eval_summary": {
+    "eval_mean_reward": -1546.6440000000002,
+    "eval_std_reward": 261.3474120966186,
+    "eval_mean_delivered": 6.0,
+    "eval_mean_spoiled": 312.2,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -1677.7820000000002,
+      "delivered_units": 0.0,
+      "spoiled_units": 325.0,
+      "deliveries_count": 0,
+      "distance": 177
+    },
+    {
+      "seed": 101,
+      "total_reward": -1259.896000000001,
+      "delivered_units": 16.0,
+      "spoiled_units": 279.0,
+      "deliveries_count": 4,
+      "distance": 183
+    },
+    {
+      "seed": 102,
+      "total_reward": -1938.3339999999996,
+      "delivered_units": 0.0,
+      "spoiled_units": 377.0,
+      "deliveries_count": 0,
+      "distance": 186
+    },
+    {
+      "seed": 103,
+      "total_reward": -1602.9639999999997,
+      "delivered_units": 9.0,
+      "spoiled_units": 329.0,
+      "deliveries_count": 2,
+      "distance": 182
+    },
+    {
+      "seed": 104,
+      "total_reward": -1254.2440000000004,
+      "delivered_units": 5.0,
+      "spoiled_units": 251.0,
+      "deliveries_count": 1,
+      "distance": 171
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "random_baseline",
+      "agent": "random",
+      "scenario": "weekday",
+      "num_episodes": 100,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "Random-action baseline on the weekday scenario. No learning; stochastic.\n"
+    },
+    "agent_params": {},
+    "reward_weights": {
+      "delivery": 10.0,
+      "spoilage": 5.0,
+      "distance": 0.1,
+      "unmet_demand": 1.0,
+      "priority_bonus": 0.5,
+      "oversupply_penalty": 0.3
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

@@ -17,7 +17,6 @@ import textwrap
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import mlflow
-import os
 import pandas as pd
 
 from mlops_tracking import configure_mlflow

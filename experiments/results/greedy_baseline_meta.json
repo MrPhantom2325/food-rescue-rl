@@ -1,0 +1,93 @@
+{
+  "run_id": "greedy_baseline",
+  "agent": "greedy",
+  "scenario": "weekday",
+  "num_episodes": 100,
+  "seed": 42,
+  "git_commit": "e12dcfc8799327f7105366b937287a2df1eb4d4b",
+  "wall_time_seconds": 0.9833228588104248,
+  "eval_summary": {
+    "eval_mean_reward": 1337.2547999999997,
+    "eval_std_reward": 167.53060873094168,
+    "eval_mean_delivered": 166.6,
+    "eval_mean_spoiled": 88.4,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": 1142.83,
+      "delivered_units": 155.0,
+      "spoiled_units": 103.0,
+      "deliveries_count": 45,
+      "distance": 193
+    },
+    {
+      "seed": 101,
+      "total_reward": 1555.3979999999988,
+      "delivered_units": 181.0,
+      "spoiled_units": 78.0,
+      "deliveries_count": 51,
+      "distance": 188
+    },
+    {
+      "seed": 102,
+      "total_reward": 1324.3640000000007,
+      "delivered_units": 166.0,
+      "spoiled_units": 89.0,
+      "deliveries_count": 54,
+      "distance": 181
+    },
+    {
+      "seed": 103,
+      "total_reward": 1497.2499999999995,
+      "delivered_units": 186.0,
+      "spoiled_units": 100.0,
+      "deliveries_count": 50,
+      "distance": 196
+    },
+    {
+      "seed": 104,
+      "total_reward": 1166.4319999999998,
+      "delivered_units": 145.0,
+      "spoiled_units": 72.0,
+      "deliveries_count": 32,
+      "distance": 171
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "greedy_baseline",
+      "agent": "greedy",
+      "scenario": "weekday",
+      "num_episodes": 100,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "Greedy heuristic baseline on the weekday scenario. Deterministic, one-step\nlookahead; no training performed.\n"
+    },
+    "agent_params": {
+      "priority_weight_high": 2.0,
+      "priority_weight_low": 1.0,
+      "urgency_threshold": 15,
+      "urgency_boost": 3.0
+    },
+    "reward_weights": {
+      "delivery": 10.0,
+      "spoilage": 5.0,
+      "distance": 0.1,
+      "unmet_demand": 1.0,
+      "priority_bonus": 0.5,
+      "oversupply_penalty": 0.3
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

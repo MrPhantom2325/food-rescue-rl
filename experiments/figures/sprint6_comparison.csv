@@ -1,0 +1,6 @@
+run_id,scenario,n_seeds,reward_mean,reward_std,delivered_mean,spoiled_mean,source
+greedy_baseline,weekday,1,1337.2547999999997,167.53060873094168,166.6,88.4,single-seed baseline
+dqn_v1,(varies),5,-448.04256,141.37803127617244,67.2,230.64000000000001,multi-seed (5)
+q_learning_tuned,(varies),5,-612.73424,349.65815670688187,60.0,245.8,multi-seed (5)
+sarsa_tuned,(varies),5,-1048.1000800000002,249.9688408715806,32.480000000000004,272.43999999999994,multi-seed (5)
+random_baseline,weekday,1,-1546.6440000000002,261.3474120966186,6.0,312.2,single-seed baseline

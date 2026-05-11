@@ -1,0 +1,39 @@
+run:
+  run_id: dqn_tuned
+  agent: dqn
+  scenario: weekday
+  num_episodes: 800
+  seed: 42
+  output_dir: experiments
+  description: Optuna-tuned hyperparameters for dqn on weekday. Best of 10 trials,
+    score = -812.01.
+agent_params:
+  hidden_sizes:
+  - 256
+  - 128
+  learning_rate: 0.00030012301808980484
+  discount: 0.9488426474842424
+  epsilon_start: 1.0
+  epsilon_end: 0.0711386337462144
+  epsilon_decay_episodes: 650
+  replay_buffer_size: 50000
+  batch_size: 64
+  min_replay_to_train: 1000
+  target_update_interval: 300
+  grad_clip: 1.0
+  device: auto
+reward_weights:
+  delivery: 10.0
+  spoilage: 5.0
+  distance: 0.1
+  unmet_demand: 1.0
+  priority_bonus: 0.5
+  oversupply_penalty: 0.3
+eval:
+  n_episodes: 5
+  eval_seeds:
+  - 100
+  - 101
+  - 102
+  - 103
+  - 104
