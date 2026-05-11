@@ -1,0 +1,33 @@
+run:
+  run_id: sarsa_tuned
+  agent: sarsa
+  scenario: weekday
+  num_episodes: 1500
+  seed: 42
+  output_dir: experiments
+  description: Optuna-tuned hyperparameters for sarsa on weekday. Best of 30 trials,
+    score = -515.74.
+agent_params:
+  learning_rate: 0.10928874384472725
+  discount: 0.9274707232665372
+  epsilon_start: 1.0
+  epsilon_end: 0.15676731744958844
+  epsilon_decay_episodes: 500
+  optimistic_init: 0.0
+  pos_buckets: 3
+  load_buckets: 3
+reward_weights:
+  delivery: 10.0
+  spoilage: 5.0
+  distance: 0.1
+  unmet_demand: 1.0
+  priority_bonus: 0.5
+  oversupply_penalty: 0.3
+eval:
+  n_episodes: 5
+  eval_seeds:
+  - 100
+  - 101
+  - 102
+  - 103
+  - 104

@@ -1,5 +1,6 @@
 """Tests for multi_seed_eval.py."""
 
+import json
 import os
 import tempfile
 

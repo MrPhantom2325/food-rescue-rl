@@ -1,0 +1,52 @@
+{
+  "train_seed": 42,
+  "eval_mean_reward": -144.4252,
+  "eval_std_reward": 131.21713542735188,
+  "eval_mean_delivered": 82.2,
+  "eval_mean_spoiled": 203.6,
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -219.09800000000007,
+      "delivered_units": 77.0,
+      "spoiled_units": 208.0,
+      "deliveries_count": 24,
+      "distance": 139
+    },
+    {
+      "seed": 101,
+      "total_reward": -184.22,
+      "delivered_units": 83.0,
+      "spoiled_units": 212.0,
+      "deliveries_count": 22,
+      "distance": 136
+    },
+    {
+      "seed": 102,
+      "total_reward": -306.0559999999999,
+      "delivered_units": 85.0,
+      "spoiled_units": 245.0,
+      "deliveries_count": 28,
+      "distance": 157
+    },
+    {
+      "seed": 103,
+      "total_reward": 79.32800000000009,
+      "delivered_units": 96.0,
+      "spoiled_units": 187.0,
+      "deliveries_count": 30,
+      "distance": 162
+    },
+    {
+      "seed": 104,
+      "total_reward": -92.08,
+      "delivered_units": 70.0,
+      "spoiled_units": 166.0,
+      "deliveries_count": 22,
+      "distance": 145
+    }
+  ],
+  "final_train_mean_reward": -397.08804,
+  "final_train_std_reward": 331.3991457836884,
+  "table_size": 2078
+}

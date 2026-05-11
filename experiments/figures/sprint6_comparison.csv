@@ -1,0 +1,3 @@
+run_id,scenario,n_seeds,reward_mean,reward_std,delivered_mean,spoiled_mean,source
+dqn_v1,(varies),5,-448.04256,141.37803127617244,67.2,230.64000000000001,multi-seed (5)
+q_learning_tuned,(varies),5,-612.73424,349.65815670688187,60.0,245.8,multi-seed (5)
