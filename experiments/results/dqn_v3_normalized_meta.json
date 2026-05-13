@@ -1,0 +1,104 @@
+{
+  "run_id": "dqn_v3_normalized",
+  "agent": "dqn",
+  "scenario": "weekday",
+  "num_episodes": 1500,
+  "seed": 42,
+  "git_commit": "bca74693c061b4e7f99d0d67cfd02720430f4754",
+  "wall_time_seconds": 2909.2663967609406,
+  "eval_summary": {
+    "eval_mean_reward": -24.09464000000001,
+    "eval_std_reward": 21.484256534457977,
+    "eval_mean_delivered": 79.2,
+    "eval_mean_spoiled": 217.0,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -30.534399999999998,
+      "delivered_units": 81.0,
+      "spoiled_units": 232.0,
+      "deliveries_count": 19,
+      "distance": 131
+    },
+    {
+      "seed": 101,
+      "total_reward": -22.661800000000024,
+      "delivered_units": 86.0,
+      "spoiled_units": 230.0,
+      "deliveries_count": 18,
+      "distance": 135
+    },
+    {
+      "seed": 102,
+      "total_reward": -59.30440000000002,
+      "delivered_units": 70.0,
+      "spoiled_units": 266.0,
+      "deliveries_count": 18,
+      "distance": 127
+    },
+    {
+      "seed": 103,
+      "total_reward": 6.404199999999992,
+      "delivered_units": 87.0,
+      "spoiled_units": 174.0,
+      "deliveries_count": 34,
+      "distance": 169
+    },
+    {
+      "seed": 104,
+      "total_reward": -14.376799999999992,
+      "delivered_units": 72.0,
+      "spoiled_units": 183.0,
+      "deliveries_count": 16,
+      "distance": 129
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "dqn_v3_normalized",
+      "agent": "dqn",
+      "scenario": "weekday",
+      "num_episodes": 1500,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "DQN with normalized reward scale (~10x reduction) + longer horizon discount\n+ slower epsilon decay + bigger replay warm-up. The hypothesis (see\nMODEL_IMPROVEMENT.md) is that v1/tuned were dominated by the +10 delivery\nspike and a discount too low for the 200-step horizon.\n"
+    },
+    "agent_params": {
+      "hidden_sizes": [
+        128,
+        128
+      ],
+      "learning_rate": 0.0005,
+      "discount": 0.99,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.02,
+      "epsilon_decay_episodes": 1200,
+      "replay_buffer_size": 100000,
+      "batch_size": 64,
+      "min_replay_to_train": 5000,
+      "target_update_interval": 500,
+      "grad_clip": 1.0,
+      "device": "auto"
+    },
+    "reward_weights": {
+      "delivery": 1.0,
+      "spoilage": 0.5,
+      "distance": 0.01,
+      "unmet_demand": 0.1,
+      "priority_bonus": 0.05,
+      "oversupply_penalty": 0.03
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

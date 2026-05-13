@@ -1,0 +1,18 @@
+{
+  "baseline (dqn_v1)": {
+    "config": "configs/dqn_v1.yaml",
+    "wall_time_s": 1716.7,
+    "eval_reward_mean": -506.2876,
+    "eval_reward_std": 453.33753366497245,
+    "eval_delivered_mean": 66.6,
+    "eval_spoiled_mean": 239.2
+  },
+  "normalized (dqn_v3)": {
+    "config": "configs/dqn_v3_normalized.yaml",
+    "wall_time_s": 2909.4,
+    "eval_reward_mean": -24.09464000000001,
+    "eval_reward_std": 21.484256534457977,
+    "eval_delivered_mean": 79.2,
+    "eval_spoiled_mean": 217.0
+  }
+}

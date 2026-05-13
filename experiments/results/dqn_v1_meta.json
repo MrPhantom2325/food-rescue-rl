@@ -4,8 +4,8 @@
   "scenario": "weekday",
   "num_episodes": 800,
   "seed": 42,
-  "git_commit": "c8a093ab8a770e3d48d664ad4f88cce0a38f5a9d",
-  "wall_time_seconds": 1607.8412811756134,
+  "git_commit": "bca74693c061b4e7f99d0d67cfd02720430f4754",
+  "wall_time_seconds": 1715.7578251361847,
   "eval_summary": {
     "eval_mean_reward": -506.2876,
     "eval_std_reward": 453.33753366497245,
