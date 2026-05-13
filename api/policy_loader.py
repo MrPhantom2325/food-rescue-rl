@@ -134,8 +134,10 @@ def load_policy_from_env() -> tuple[DQNAgent, dict[str, Any]]:
     Resolution order:
     1. FOOD_RESCUE_MODEL_NAME + FOOD_RESCUE_MODEL_VERSION -> MLflow Registry
     2. FOOD_RESCUE_MODEL_PATH -> local file or directory
-    3. Default MLflow Registry model food_rescue_dqn @ latest
+    3. Default MLflow Registry model food_rescue_dqn @ latest (skipped if unavailable)
     4. Local DQN fallback files
+
+    Raises FileNotFoundError if no policy can be loaded via any method.
     """
     model_name = os.environ.get("FOOD_RESCUE_MODEL_NAME")
     model_version = os.environ.get("FOOD_RESCUE_MODEL_VERSION")
@@ -147,12 +149,17 @@ def load_policy_from_env() -> tuple[DQNAgent, dict[str, Any]]:
     if model_path:
         return _load_from_path(model_path)
 
-    try:
-        return _load_from_mlflow_registry("food_rescue_dqn", "latest")
-    except Exception as e:
-        print(f"  Registry default load failed, falling back to local policy: {e}")
+    # Try MLflow registry default, but don't fail if it's unavailable (e.g., CI environment)
+    # Can be disabled entirely with FOOD_RESCUE_DISABLE_MLFLOW_REGISTRY=1
+    if not os.environ.get("FOOD_RESCUE_DISABLE_MLFLOW_REGISTRY"):
+        try:
+            return _load_from_mlflow_registry("food_rescue_dqn", "latest")
+        except Exception as e:
+            print(f"  MLflow registry not available ({type(e).__name__}), trying local fallback...")
+    else:
+        print("  MLflow registry disabled via FOOD_RESCUE_DISABLE_MLFLOW_REGISTRY")
 
-    # Fallback: look for any DQN policy
+    # Fallback: look for any DQN policy on local disk
     candidates = [
         Path("experiments/policies/dqn_v5_masked.pt"),
         Path("experiments/policies/dqn_tuned.pt"),
@@ -160,11 +167,12 @@ def load_policy_from_env() -> tuple[DQNAgent, dict[str, Any]]:
     ]
     for c in candidates:
         if c.exists():
+            print(f"  Found local policy: {c}")
             return _load_from_path(str(c))
 
     raise FileNotFoundError(
-        "No policy could be loaded. Set FOOD_RESCUE_MODEL_NAME + "
-        "FOOD_RESCUE_MODEL_VERSION (for MLflow registry), or "
-        "FOOD_RESCUE_MODEL_PATH (for local file), or place a DQN policy at "
-        "experiments/policies/dqn_v5_masked.pt, dqn_tuned.pt, or dqn_v3_normalized.pt."
+        "No policy could be loaded. Please set one of:\n"
+        "  - FOOD_RESCUE_MODEL_NAME + FOOD_RESCUE_MODEL_VERSION (MLflow registry)\n"
+        "  - FOOD_RESCUE_MODEL_PATH (local file or directory)\n"
+        "  - Place a DQN policy at experiments/policies/dqn_v5_masked.pt or similar"
     )

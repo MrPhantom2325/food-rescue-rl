@@ -151,8 +151,11 @@ jobs:
       - name: Run container and check /health
         run: |
           # Start the API in the background; it will boot in degraded mode
-          # since no policy is mounted, but /health should still respond.
-          docker run -d --name api-smoke -p 8000:8000 food-rescue-serve:smoke
+          # since no policy is mounted and MLflow is not available in CI.
+          # FOOD_RESCUE_DISABLE_MLFLOW_REGISTRY=1 prevents hanging on MLflow connection.
+          docker run -d --name api-smoke \
+            -e FOOD_RESCUE_DISABLE_MLFLOW_REGISTRY=1 \
+            -p 8000:8000 food-rescue-serve:smoke
           # Give uvicorn ~10s to come up
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8000/health > /dev/null; then
