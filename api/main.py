@@ -25,10 +25,10 @@ import uuid
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.schemas import (
     HealthResponse,
@@ -93,6 +93,23 @@ app = FastAPI(
     ),
     version="0.1.0",
     lifespan=lifespan,
+)
+
+# CORS: allow the browser-based demo (index.html) to call this API.
+# Defaults cover common local dev setups (Live Server / vite / python -m http.server).
+# Set CORS_ALLOW_ORIGINS="*" to allow any origin (e.g. for opening index.html as file://).
+_raw = os.environ.get(
+    "CORS_ALLOW_ORIGINS",
+    "http://localhost:8080,http://127.0.0.1:8080,http://localhost:5500,http://127.0.0.1:5500",
+)
+_origins = [o.strip() for o in _raw.split(",") if o.strip()]
+_wildcard = "*" in _origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if _wildcard else _origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

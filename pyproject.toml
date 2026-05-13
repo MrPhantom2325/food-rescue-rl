@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["mlruns", "experiments", "data/processed"]
+
+[tool.ruff.lint]
+# Default rule set (E, F). F841 (unused local) is noisy in test scaffolding
+# and intermediate refactors; we accept it. Everything else is on.
+ignore = ["F841"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests routinely import-but-don't-use fixtures and dump locals; relax further.
+"tests/*" = ["F401", "F811"]
+"scripts/*" = ["F401"]
