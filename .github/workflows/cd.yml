@@ -1,0 +1,91 @@
+name: Retrain
+
+# Trigger:
+# - manual via the Actions tab (workflow_dispatch) — pick a config from the dropdown
+# - push to main with "[retrain]" in the commit message
+#
+# Note: this is a *demonstration* CD workflow. In a real deployment you'd
+# push the resulting policy to S3/GCS or a model registry served from MLflow,
+# but for Phase 1 we just upload the policy artifact to the workflow run so
+# you can download it from the GitHub UI.
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: "Config file to train with"
+        required: true
+        default: "configs/dqn_tuned.yaml"
+        type: choice
+        options:
+          - configs/qlearning_v1.yaml
+          - configs/qlearning_v2_explored.yaml
+          - configs/q_learning_tuned.yaml
+          - configs/sarsa_v1.yaml
+          - configs/sarsa_tuned.yaml
+          - configs/dqn_v1.yaml
+          - configs/dqn_v2_holiday.yaml
+          - configs/dqn_tuned.yaml
+  push:
+    branches: [main]
+
+jobs:
+  retrain:
+    name: Train policy
+    runs-on: ubuntu-latest
+    # Skip on regular pushes; only run if the commit message contains [retrain]
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[retrain]')
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install CPU-only PyTorch
+        run: |
+          pip install --upgrade pip
+          pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare data
+        run: python data_prep.py --scenario all
+
+      - name: Resolve config to train
+        id: cfg
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "CONFIG=${{ github.event.inputs.config }}" >> $GITHUB_OUTPUT
+          else
+            # Default for [retrain] pushes
+            echo "CONFIG=configs/dqn_tuned.yaml" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Train
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+        run: |
+          echo "Training with ${{ steps.cfg.outputs.CONFIG }}"
+          python train.py --config ${{ steps.cfg.outputs.CONFIG }}
+
+      - name: Upload trained policy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-policy-${{ github.sha }}
+          path: |
+            experiments/policies/
+            experiments/results/
+
+      - name: Upload MLflow runs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlruns-${{ github.sha }}
+          path: mlruns/
