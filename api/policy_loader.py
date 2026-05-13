@@ -66,7 +66,11 @@ def _load_from_mlflow_registry(
 
     # Download the artifact directory
     local_dir = mlflow.artifacts.download_artifacts(source_uri)
-    return _load_dqn_from_dir(Path(local_dir), source=f"mlflow:{model_name}:{version}")
+    agent, info = _load_dqn_from_dir(Path(local_dir), source=f"mlflow:{model_name}:{version}")
+    # Override the cosmetic fields so /info reflects the real registry version
+    info["model_name"] = model_name
+    info["model_version"] = str(version)
+    return agent, info
 
 
 def _load_from_path(path: str) -> tuple[DQNAgent, dict[str, Any]]:
