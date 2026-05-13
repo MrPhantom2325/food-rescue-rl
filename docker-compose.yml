@@ -1,12 +1,24 @@
+# Docker Compose file for Food Rescue RL — local-dev orchestration.
+#
+# Usage:
+#   docker compose up mlflow                                # tracking server only
+#   docker compose --profile train run train                # one-shot training
+#   docker compose --profile serve up serve                 # FastAPI server
+#   docker compose --profile serve --profile train up       # all services
+#
+# ── Shared network so containers can reach each other by name ──────────────
 networks:
   rescue_net:
     driver: bridge
 
+# ── Named volumes ──────────────────────────────────────────────────────────
 volumes:
-  mlflow_data:
-  experiments_data:
+  mlflow_data: # persists MLflow runs/artifacts between restarts
+  experiments_data: # trained policies shared between train & serve
 
+# ══════════════════════════════════════════════════════════════════════════
 services:
+  # ── 1. MLflow tracking server ──────────────────────────────────────────
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.10.0
     container_name: food_rescue_mlflow
@@ -27,7 +39,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── 2. Training container (run-once, profile-gated) ────────────────────
   train:
+    profiles: [train]
     build:
       context: .
       dockerfile: Dockerfile.train
@@ -37,12 +51,16 @@ services:
       mlflow:
         condition: service_healthy
     volumes:
-      - experiments_data:/app/experiments
+      - experiments_data:/app/experiments # persist trained policies
     environment:
       - CONFIG=${CONFIG:-configs/qlearning_v1.yaml}
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+    # Override CONFIG on the CLI:
+    # docker compose --profile train run -e CONFIG=configs/dqn_v2_holiday.yaml train
 
+  # ── 3. FastAPI inference server (profile-gated) ────────────────────────
   serve:
+    profiles: [serve]
     build:
       context: .
       dockerfile: Dockerfile.serve
@@ -54,7 +72,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - experiments_data:/app/experiments
+      - experiments_data:/app/experiments # reads trained policies
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
     healthcheck:

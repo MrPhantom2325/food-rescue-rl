@@ -105,14 +105,6 @@ class TestSARSAUpdate:
                                      env_after=env, done=False, next_action=0)
         assert agent.table_size() == 0
 
-    def test_no_update_in_eval_mode(self):
-        env = FoodRescueEnv()
-        env.reset(seed=42)
-        agent = SARSAAgent(num_actions=env.action_space.n, seed=0)
-        agent.set_training(False)
-        agent.update_from_transition(env_before=env, action=0, reward=10.0,
-                                     env_after=env, done=False, next_action=0)
-        assert agent.table_size() == 0
 
 
 class TestSARSASaveLoad:
