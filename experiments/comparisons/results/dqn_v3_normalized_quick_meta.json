@@ -1,0 +1,86 @@
+{
+  "run_id": "dqn_v3_normalized_quick",
+  "agent": "dqn",
+  "scenario": "weekday",
+  "num_episodes": 150,
+  "seed": 42,
+  "git_commit": "bca74693c061b4e7f99d0d67cfd02720430f4754",
+  "wall_time_seconds": 320.0624520778656,
+  "eval_summary": {
+    "eval_mean_reward": -59.898399999999974,
+    "eval_std_reward": 18.278773432226416,
+    "eval_mean_delivered": 56.0,
+    "eval_mean_spoiled": 236.66666666666666,
+    "eval_n_episodes": 3
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -53.37199999999998,
+      "delivered_units": 56.0,
+      "spoiled_units": 225.0,
+      "deliveries_count": 22,
+      "distance": 126
+    },
+    {
+      "seed": 101,
+      "total_reward": -41.499999999999986,
+      "delivered_units": 63.0,
+      "spoiled_units": 213.0,
+      "deliveries_count": 20,
+      "distance": 166
+    },
+    {
+      "seed": 102,
+      "total_reward": -84.82319999999996,
+      "delivered_units": 49.0,
+      "spoiled_units": 272.0,
+      "deliveries_count": 23,
+      "distance": 151
+    }
+  ],
+  "config_raw": {
+    "agent_params": {
+      "batch_size": 64,
+      "device": "auto",
+      "discount": 0.99,
+      "epsilon_decay_episodes": 100,
+      "epsilon_end": 0.02,
+      "epsilon_start": 1.0,
+      "grad_clip": 1.0,
+      "hidden_sizes": [
+        128,
+        128
+      ],
+      "learning_rate": 0.0005,
+      "min_replay_to_train": 500,
+      "replay_buffer_size": 100000,
+      "target_update_interval": 500
+    },
+    "eval": {
+      "eval_seeds": [
+        100,
+        101,
+        102
+      ],
+      "n_episodes": 3
+    },
+    "reward_weights": {
+      "delivery": 1.0,
+      "distance": 0.01,
+      "oversupply_penalty": 0.03,
+      "priority_bonus": 0.05,
+      "spoilage": 0.5,
+      "unmet_demand": 0.1
+    },
+    "run": {
+      "agent": "dqn",
+      "description": "DQN with normalized reward scale (~10x reduction) + longer horizon discount\n+ slower epsilon decay + bigger replay warm-up. The hypothesis (see\nMODEL_IMPROVEMENT.md) is that v1/tuned were dominated by the +10 delivery\nspike and a discount too low for the 200-step horizon.\n",
+      "num_episodes": 150,
+      "output_dir": "experiments/comparisons",
+      "run_id": "dqn_v3_normalized_quick",
+      "scenario": "weekday",
+      "seed": 42
+    }
+  }
+}

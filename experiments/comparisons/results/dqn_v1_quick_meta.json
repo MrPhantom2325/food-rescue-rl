@@ -1,0 +1,86 @@
+{
+  "run_id": "dqn_v1_quick",
+  "agent": "dqn",
+  "scenario": "weekday",
+  "num_episodes": 150,
+  "seed": 42,
+  "git_commit": "bca74693c061b4e7f99d0d67cfd02720430f4754",
+  "wall_time_seconds": 316.411926984787,
+  "eval_summary": {
+    "eval_mean_reward": -935.7860000000001,
+    "eval_std_reward": 111.68142968282591,
+    "eval_mean_delivered": 43.666666666666664,
+    "eval_mean_spoiled": 275.3333333333333,
+    "eval_n_episodes": 3
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -1028.9740000000002,
+      "delivered_units": 37.0,
+      "spoiled_units": 282.0,
+      "deliveries_count": 10,
+      "distance": 117
+    },
+    {
+      "seed": 101,
+      "total_reward": -778.7560000000002,
+      "delivered_units": 44.0,
+      "spoiled_units": 242.0,
+      "deliveries_count": 13,
+      "distance": 145
+    },
+    {
+      "seed": 102,
+      "total_reward": -999.6279999999999,
+      "delivered_units": 50.0,
+      "spoiled_units": 302.0,
+      "deliveries_count": 15,
+      "distance": 143
+    }
+  ],
+  "config_raw": {
+    "agent_params": {
+      "batch_size": 64,
+      "device": "auto",
+      "discount": 0.95,
+      "epsilon_decay_episodes": 100,
+      "epsilon_end": 0.05,
+      "epsilon_start": 1.0,
+      "grad_clip": 1.0,
+      "hidden_sizes": [
+        128,
+        128
+      ],
+      "learning_rate": 0.001,
+      "min_replay_to_train": 500,
+      "replay_buffer_size": 50000,
+      "target_update_interval": 500
+    },
+    "eval": {
+      "eval_seeds": [
+        100,
+        101,
+        102
+      ],
+      "n_episodes": 3
+    },
+    "reward_weights": {
+      "delivery": 10.0,
+      "distance": 0.1,
+      "oversupply_penalty": 0.3,
+      "priority_bonus": 0.5,
+      "spoilage": 5.0,
+      "unmet_demand": 1.0
+    },
+    "run": {
+      "agent": "dqn",
+      "description": "Deep Q-Network on the weekday scenario. 128/128 MLP, replay buffer\n50k, target net hard-update every 500 steps.\n",
+      "num_episodes": 150,
+      "output_dir": "experiments/comparisons",
+      "run_id": "dqn_v1_quick",
+      "scenario": "weekday",
+      "seed": 42
+    }
+  }
+}

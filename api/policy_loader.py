@@ -42,7 +42,23 @@ def _load_from_mlflow_registry(
     configure_mlflow()
     client = MlflowClient()
 
-    mv = client.get_model_version(name=model_name, version=version)
+    # Handle 'latest' as a special case
+    if version.lower() == 'latest':
+        versions = client.get_latest_versions(name=model_name)
+        if not versions:
+            raise ValueError(f"No versions found for model '{model_name}'")
+        # Get the production version if available, otherwise the highest version number
+        prod_version = next((v for v in versions if v.current_stage == 'Production'), None)
+        mv = prod_version or max(versions, key=lambda v: int(v.version))
+        version = mv.version
+    else:
+        # Ensure version is a string representation of an integer
+        try:
+            int(version)
+        except ValueError:
+            raise ValueError(f"Model version must be an integer or 'latest', got '{version}'")
+        mv = client.get_model_version(name=model_name, version=version)
+
     source_uri = mv.source
 
     print(f"  Loading from MLflow Model Registry: {model_name} v{version}")
@@ -128,7 +144,7 @@ def load_policy_from_env() -> tuple[DQNAgent, dict[str, Any]]:
     # Fallback: look for any DQN policy
     candidates = [
         Path("experiments/policies/dqn_tuned.pt"),
-        Path("experiments/policies/dqn_v1.pt"),
+        Path("experiments/policies/dqn_v3_normalized.pt"),
     ]
     for c in candidates:
         if c.exists():

@@ -1,0 +1,45 @@
+agent_params:
+  batch_size: 64
+  device: auto
+  discount: 0.99
+  epsilon_decay_episodes: 100
+  epsilon_end: 0.02
+  epsilon_start: 1.0
+  grad_clip: 1.0
+  hidden_sizes:
+  - 128
+  - 128
+  learning_rate: 0.0005
+  min_replay_to_train: 500
+  replay_buffer_size: 100000
+  target_update_interval: 500
+eval:
+  eval_seeds:
+  - 100
+  - 101
+  - 102
+  n_episodes: 3
+reward_weights:
+  delivery: 1.0
+  distance: 0.01
+  oversupply_penalty: 0.03
+  priority_bonus: 0.05
+  spoilage: 0.5
+  unmet_demand: 0.1
+run:
+  agent: dqn
+  description: 'DQN with normalized reward scale (~10x reduction) + longer horizon
+    discount
+
+    + slower epsilon decay + bigger replay warm-up. The hypothesis (see
+
+    MODEL_IMPROVEMENT.md) is that v1/tuned were dominated by the +10 delivery
+
+    spike and a discount too low for the 200-step horizon.
+
+    '
+  num_episodes: 150
+  output_dir: experiments/comparisons
+  run_id: dqn_v3_normalized_quick
+  scenario: weekday
+  seed: 42
