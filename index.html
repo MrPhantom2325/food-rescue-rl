@@ -398,7 +398,10 @@
         </div>
         <div class="tb-pill"><span class="hi" id="tb-time">morning</span></div>
         <div class="tb-pill">
-          policy <span class="hi" id="tb-policy">DQN</span>
+          policy <span class="hi" id="tb-policy">greedy</span>
+        </div>
+        <div class="tb-pill" id="tb-api-pill" style="display: none">
+          api <span class="hi" id="tb-api-status">…</span>
         </div>
       </div>
 
@@ -483,7 +486,7 @@
             </div>
             <div class="p-row">
               <span class="p-key">policy</span
-              ><span class="p-val" id="p-policy">DQN</span>
+              ><span class="p-val" id="p-policy">greedy</span>
             </div>
           </div>
 
@@ -577,8 +580,9 @@
           <option value="holiday_rush">holiday_rush</option>
         </select>
         <select id="policy-select">
-          <option value="dqn">DQN</option>
+          <option value="greedy" selected>greedy (rule-based)</option>
           <option value="random">random</option>
+          <option value="api-dqn">DQN (via API)</option>
         </select>
         <button class="btn" id="btn-reset">↺ reset</button>
         <button class="btn primary" id="btn-step">step ▶</button>
@@ -783,9 +787,155 @@
         return choices[Math.floor(r() * choices.length)];
       }
 
+      // ── API-backed policy (calls the FastAPI /predict endpoint) ──────
+      //
+      // We construct a 31-dim observation matching sim/environment.py:_get_observation,
+      // POST it to the API, and map the returned action id back to a {kind, target}
+      // decision. If the API is unreachable, we fall back to greedy + flag the UI.
+      const API_BASE =
+        localStorage.getItem("api_base") || "http://localhost:8000";
+      let apiState = { reachable: null, info: null, lastError: null };
+
+      function setApiStatus(text, color) {
+        const el = document.getElementById("tb-api-status");
+        if (!el) return;
+        el.textContent = text;
+        el.style.color = color || "";
+      }
+
+      async function checkApiHealth() {
+        try {
+          const r = await fetch(API_BASE + "/health", { method: "GET" });
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const data = await r.json();
+          apiState.reachable = data.model_loaded === true;
+          if (apiState.reachable) {
+            const info = await fetch(API_BASE + "/info").then((x) => x.json());
+            apiState.info = info;
+            setApiStatus(
+              info.model_name + " v" + info.model_version,
+              "#3ddc84",
+            );
+          } else {
+            setApiStatus("degraded", "#ffb74d");
+          }
+          return apiState.reachable;
+        } catch (e) {
+          apiState.reachable = false;
+          apiState.lastError = e.message;
+          setApiStatus("unreachable", "#ef5350");
+          return false;
+        }
+      }
+
+      // Build the 31-dim observation for the CURRENT vehicle, matching exactly
+      // what sim/environment.py:_get_observation produces. Layout:
+      //   [vx, vy, load_frac, idle_flag,
+      //    for each donor: qty_norm, shelf_life_norm, dist_norm,
+      //    for each shelter: utilization, dist_norm,
+      //    time_norm, vehicle_idx_norm]
+      //
+      // NB: this is a CLIENT-SIDE approximation. The JS sim doesn't model batch
+      // shelf-life per-batch (donors just have a single TTL counter), so we
+      // estimate min_pending_shelf_life ≈ donor.ttl / max_ttl. The agent was
+      // trained against the Python env so there's some distributional mismatch;
+      // for a true production demo the env would also live server-side.
+      function buildObservationFor(v) {
+        const GRID = 10;
+        const MAX_STEPS_LOCAL = 200;
+        const NUM_VEHICLES = 2;
+        const CAP = v.cap || 20;
+        // Reference quantities for normalization (mirror Python env's avg_quantity)
+        const AVG_DONOR_QTY = 10;
+        const MAX_TTL = 48;
+        // Reference demand cap (mirror Shelter.utilization which uses base_demand)
+        const SHELTER_BASE_DEMAND = 20;
+
+        const obs = [];
+
+        // Vehicle features (4)
+        obs.push(v.x / GRID);
+        obs.push(v.y / GRID);
+        obs.push(v.load / CAP);
+        obs.push(v.target == null && v.kind == null ? 1.0 : 0.0);
+
+        // Per-donor features (3 each)
+        S.donors.forEach((d) => {
+          const qty_norm = Math.min(d.units / Math.max(AVG_DONOR_QTY, 1), 10);
+          const sl_norm = Math.min(d.ttl / MAX_TTL, 1);
+          const dist = Math.abs(v.x - d.x) + Math.abs(v.y - d.y);
+          const dist_norm = dist / (2 * GRID);
+          obs.push(qty_norm, sl_norm, dist_norm);
+        });
+
+        // Per-shelter features (2 each)
+        S.shelters.forEach((sh) => {
+          const utilization = Math.min(sh.unmet / SHELTER_BASE_DEMAND, 1);
+          const dist = Math.abs(v.x - sh.x) + Math.abs(v.y - sh.y);
+          const dist_norm = dist / (2 * GRID);
+          obs.push(utilization, dist_norm);
+        });
+
+        // Time + vehicle idx (2)
+        obs.push(S.step / MAX_STEPS_LOCAL);
+        const vIdx = S.vehicles.findIndex((x) => x.id === v.id);
+        obs.push(NUM_VEHICLES > 1 ? vIdx / (NUM_VEHICLES - 1) : 0);
+
+        return obs;
+      }
+
+      // Map a discrete action int to a {kind, target} object.
+      // Assumes default 5+5+1 action layout: 0..4=donors, 5..9=shelters, 10=idle.
+      function decodeAction(action) {
+        const N = S.donors.length;
+        const M = S.shelters.length;
+        if (action < N) {
+          const d = S.donors[action];
+          return d && d.units > 0
+            ? { kind: "donor", target: d.id }
+            : { kind: "idle", target: null };
+        }
+        if (action < N + M) {
+          const sh = S.shelters[action - N];
+          return sh
+            ? { kind: "shelter", target: sh.id }
+            : { kind: "idle", target: null };
+        }
+        return { kind: "idle", target: null };
+      }
+
+      async function policyDqnApi(v, state) {
+        if (apiState.reachable === false) return policyGreedy(v, state);
+        const obs = buildObservationFor(v);
+        try {
+          const r = await fetch(API_BASE + "/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ observation: obs }),
+          });
+          if (!r.ok) {
+            apiState.lastError = "HTTP " + r.status;
+            setApiStatus("error " + r.status, "#ef5350");
+            return policyGreedy(v, state);
+          }
+          const data = await r.json();
+          return decodeAction(data.action);
+        } catch (e) {
+          apiState.lastError = e.message;
+          setApiStatus("unreachable", "#ef5350");
+          return policyGreedy(v, state);
+        }
+      }
+
       function getPolicy() {
         const p = document.getElementById("policy-select").value;
-        return p === "random" ? policyRandom : policyGreedy;
+        if (p === "random") return policyRandom;
+        if (p === "api-dqn") return policyDqnApi;
+        return policyGreedy;
+      }
+
+      function isAsyncPolicy() {
+        return document.getElementById("policy-select").value === "api-dqn";
       }
 
       // ── Simulation step ────────────────────────────────────────────
@@ -803,7 +953,7 @@
         return 0;
       }
 
-      function stepSim() {
+      async function stepSim() {
         if (S.step >= MAX_STEPS) return;
         S.step++;
         const policy = getPolicy();
@@ -811,13 +961,22 @@
         const actions = [],
           actionKinds = [];
 
-        S.vehicles.forEach((v, vi) => {
-          const act = policy(v, S);
+        // Round-robin like the Python env: each vehicle gets one action per step.
+        // For sync policies (greedy/random) this is identical to before;
+        // for the async API policy we await each call.
+        for (let vi = 0; vi < S.vehicles.length; vi++) {
+          const v = S.vehicles[vi];
+          const act = await Promise.resolve(policy(v, S));
           v.target = act.target;
           v.kind = act.kind;
 
           if (act.kind === "donor") {
             const d = S.donors.find((x) => x.id === act.target);
+            if (!d) {
+              actions.push("idle");
+              actionKinds.push("idle");
+              continue;
+            }
             const moved = moveToward(v, d.x, d.y);
             S.distance += moved;
             stepReward -= moved * 0.1;
@@ -830,6 +989,11 @@
             actionKinds.push("donor");
           } else if (act.kind === "shelter") {
             const sh = S.shelters.find((x) => x.id === act.target);
+            if (!sh) {
+              actions.push("idle");
+              actionKinds.push("idle");
+              continue;
+            }
             const moved = moveToward(v, sh.x, sh.y);
             S.distance += moved;
             stepReward -= moved * 0.1;
@@ -847,7 +1011,7 @@
             actions.push("idle");
             actionKinds.push("idle");
           }
-        });
+        }
 
         // Spoilage
         S.donors.forEach((d) => {
@@ -1153,8 +1317,8 @@
         return Math.round(500 / spd); // 50ms (fast) to 500ms (slow)
       }
 
-      document.getElementById("btn-step").onclick = () => {
-        if (S.step < MAX_STEPS) stepSim();
+      document.getElementById("btn-step").onclick = async () => {
+        if (S.step < MAX_STEPS) await stepSim();
       };
 
       document.getElementById("btn-play").onclick = function () {
@@ -1162,16 +1326,17 @@
         this.textContent = playing ? "pause ⏸" : "auto ▶▶";
         this.className = "btn " + (playing ? "primary" : "");
         if (playing) {
-          const tick = () => {
+          const btn = this;
+          const tick = async () => {
             if (!playing) return;
             if (S.step >= MAX_STEPS) {
               playing = false;
-              this.textContent = "auto ▶▶";
-              this.className = "btn";
+              btn.textContent = "auto ▶▶";
+              btn.className = "btn";
               return;
             }
-            stepSim();
-            timer = setTimeout(tick, getInterval());
+            await stepSim();
+            if (playing) timer = setTimeout(tick, getInterval());
           };
           tick();
         } else {
@@ -1195,11 +1360,18 @@
         document.getElementById("btn-reset").click();
       };
 
-      document.getElementById("policy-select").onchange = () => {
-        document.getElementById("tb-policy").textContent =
-          document.getElementById("policy-select").value;
-        document.getElementById("p-policy").textContent =
-          document.getElementById("policy-select").value;
+      document.getElementById("policy-select").onchange = async () => {
+        const val = document.getElementById("policy-select").value;
+        document.getElementById("tb-policy").textContent = val;
+        document.getElementById("p-policy").textContent = val;
+        const pill = document.getElementById("tb-api-pill");
+        if (val === "api-dqn") {
+          pill.style.display = "flex";
+          setApiStatus("checking…", "");
+          await checkApiHealth();
+        } else {
+          pill.style.display = "none";
+        }
       };
 
       // ── Canvas tooltip ─────────────────────────────────────────────
