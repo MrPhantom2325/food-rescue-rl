@@ -1,0 +1,66 @@
+# MLflow tracking server: backend store + artifact root on a PVC.
+# In a real cluster you'd back this with S3/GCS and a managed Postgres,
+# but for the Phase 1 demo a local PVC is enough.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-data
+  namespace: food-rescue
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: food-rescue
+  labels: { app: mlflow }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: mlflow }
+  template:
+    metadata:
+      labels: { app: mlflow }
+    spec:
+      containers:
+        - name: mlflow
+          image: ghcr.io/mlflow/mlflow:v2.10.0
+          command: ["mlflow", "server"]
+          args:
+            - --host=0.0.0.0
+            - --port=5000
+            - --backend-store-uri=/mlruns
+            - --default-artifact-root=/mlruns
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: data
+              mountPath: /mlruns
+          readinessProbe:
+            httpGet: { path: /health, port: 5000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "500m", memory: "1Gi" }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mlflow-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: food-rescue
+spec:
+  selector: { app: mlflow }
+  ports:
+    - port: 5000
+      targetPort: 5000
+  type: ClusterIP

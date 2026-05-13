@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: food-rescue
+  labels:
+    app: food-rescue
+    project: food-rescue-rl
