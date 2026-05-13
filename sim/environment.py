@@ -62,9 +62,9 @@ class RewardWeights:
     spoilage: float = 5.0
     distance: float = 0.1
     unmet_demand: float = 1.0
-    priority_bonus: float = 0.5  # extra reward for delivering to priority-1 shelters
-    oversupply_penalty: float = 0.3  # small penalty for delivering more than needed
-
+    priority_bonus: float = 0.5
+    oversupply_penalty: float = 0.3
+    pickup: float = 0.0  # NEW: dense intermediate signal for loading food at donor
 
 @dataclass
 class EnvConfig:
@@ -173,6 +173,44 @@ class FoodRescueEnv(gym.Env):
             shape=(n_features,),
             dtype=np.float32,
         )
+    def action_mask(self) -> np.ndarray:
+        """
+        Boolean mask of valid actions for the CURRENT vehicle.
+        
+        Returns a (num_actions,) bool array where True = legal action.
+        Used both during training (mask infeasible Q-values before argmax)
+        and at inference time (DQN's select_action consults it).
+        
+        Mask rules:
+        - "head to donor i" is valid iff donor i has pending food AND
+        the current vehicle isn't already at full capacity
+        - "head to shelter j" is valid iff shelter j has unmet demand AND
+        the current vehicle has at least one unit loaded
+        - "idle" is always valid (so we never mask everything out)
+        """
+        v = self.vehicles[self.current_vehicle_idx]
+        cap = v.capacity if v.capacity > 0 else 20
+        has_food = v.current_load() > 0
+        has_space = v.current_load() < cap
+
+        mask = np.zeros(self.action_space.n, dtype=bool)
+
+        # Donor actions: 0 .. num_donors-1
+        for i, donor in enumerate(self.scenario.donors):
+            if has_space and donor.total_pending_quantity() > 0:
+                mask[i] = True
+
+        # Shelter actions: num_donors .. num_donors+num_shelters-1
+        for j, shelter in enumerate(self.scenario.shelters):
+            if has_food and shelter.current_demand > 0:
+                mask[self.num_donors + j] = True
+
+        # Idle is always available as a fallback
+        mask[self.num_donors + self.num_shelters] = True
+
+        return mask
+
+
 
     # -----------------------------
     # Action decoding
@@ -368,6 +406,15 @@ class FoodRescueEnv(gym.Env):
                 if donor is not None:
                     picked = donor.pickup_all(self.current_step)
                     leftover = v.load_batches(picked)
+                    # Track pickup volume for reward shaping.
+                    # picked_units = total units the vehicle actually loaded
+                    # (the difference between picked-up batches and leftover).
+                    picked_total = sum(b.quantity for b in picked)
+                    leftover_total = sum(b.quantity for b in leftover)
+                    step_metrics["picked_units"] = (
+                        step_metrics.get("picked_units", 0.0)
+                        + (picked_total - leftover_total)
+                    )
                     # Leftovers go back to donor (vehicle was full)
                     donor.pending_batches.extend(leftover)
                 v.clear_target()
@@ -472,6 +519,7 @@ class FoodRescueEnv(gym.Env):
         w = self.config.reward_weights
 
         delivered = m["delivered_units"]
+        picked = m.get("picked_units", 0.0)              # NEW
         wasted = m["wasted_units"]
         spoiled = m["spoiled_units_donor"] + m["spoiled_units_vehicle"]
         distance = m["distance_traveled"]
@@ -481,13 +529,14 @@ class FoodRescueEnv(gym.Env):
         unmet = sum(s.current_demand for s in self.scenario.shelters)
 
         reward = (
-            w.delivery * delivered
-            + w.priority_bonus * priority * delivered  # bonus scaled by units delivered
-            - w.oversupply_penalty * wasted
-            - w.spoilage * spoiled
-            - w.distance * distance
-            - w.unmet_demand * (unmet / 500.0)  # softer signal; was /100, dominated reward
-        )
+        w.delivery * delivered
+        + w.pickup * picked                          # NEW
+        + w.priority_bonus * priority * delivered
+        - w.oversupply_penalty * wasted
+        - w.spoilage * spoiled
+        - w.distance * distance
+        - w.unmet_demand * (unmet / 500.0)
+    )
         return float(reward)
 
     def _update_episode_metrics(self, m: dict) -> None:

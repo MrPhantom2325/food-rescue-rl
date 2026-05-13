@@ -231,7 +231,12 @@ def train_dqn(env: FoodRescueEnv, agent, num_episodes: int, seed: int) -> list[d
             total_reward += reward
             steps += 1
 
-            agent.store_transition(obs, action, reward, next_obs, float(done))
+            # Capture the mask AFTER the step has advanced env state, so it
+            # reflects what's legal from the NEXT state. Falls back to all-True
+            # if the env doesn't support masking.
+            next_mask = env.action_mask() if hasattr(env, "action_mask") else None
+            agent.store_transition(obs, action, reward, next_obs, float(done),
+                                   next_mask=next_mask)
             loss = agent.train_step()
             if loss is not None:
                 ep_losses.append(loss)

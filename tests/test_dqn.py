@@ -30,28 +30,29 @@ class TestQNetwork:
 
 class TestReplayBuffer:
     def test_push_and_size(self):
-        buf = ReplayBuffer(capacity=100)
+        buf = ReplayBuffer(capacity=100, num_actions=11)
         for i in range(10):
             buf.push(np.zeros(31), 0, 1.0, np.zeros(31), False)
         assert len(buf) == 10
 
     def test_capacity_overflow(self):
-        buf = ReplayBuffer(capacity=10)
+        buf = ReplayBuffer(capacity=10, num_actions=11, seed=0)
         for i in range(20):
             buf.push(np.zeros(31), 0, 1.0, np.zeros(31), False)
         assert len(buf) == 10  # caps at capacity
 
     def test_sample_shapes(self):
-        buf = ReplayBuffer(capacity=100, seed=0)
+        buf = ReplayBuffer(capacity=100, num_actions=11, seed=0)
         for _ in range(50):
             buf.push(np.random.randn(31), np.random.randint(11), 1.0,
                      np.random.randn(31), False)
-        obs, act, rew, next_obs, done = buf.sample(16)
+        obs, act, rew, next_obs, done, next_mask = buf.sample(16)
         assert obs.shape == (16, 31)
         assert act.shape == (16,)
         assert rew.shape == (16,)
         assert next_obs.shape == (16, 31)
         assert done.shape == (16,)
+        assert next_mask.shape == (16, 11)
 
 
 class TestDQNAgent:

@@ -1,0 +1,105 @@
+{
+  "run_id": "dqn_v5_masked",
+  "agent": "dqn",
+  "scenario": "weekday",
+  "num_episodes": 1500,
+  "seed": 42,
+  "git_commit": "c33ddcb6dc6ff4b8fcff4f5073aa78b6518eef7c",
+  "wall_time_seconds": 3488.513890028,
+  "eval_summary": {
+    "eval_mean_reward": 106.65819999999997,
+    "eval_std_reward": 28.625535867682913,
+    "eval_mean_delivered": 116.4,
+    "eval_mean_spoiled": 137.2,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": 148.06600000000003,
+      "delivered_units": 132.0,
+      "spoiled_units": 108.0,
+      "deliveries_count": 43,
+      "distance": 193
+    },
+    {
+      "seed": 101,
+      "total_reward": 130.09999999999994,
+      "delivered_units": 136.0,
+      "spoiled_units": 131.0,
+      "deliveries_count": 40,
+      "distance": 189
+    },
+    {
+      "seed": 102,
+      "total_reward": 77.44219999999997,
+      "delivered_units": 102.0,
+      "spoiled_units": 178.0,
+      "deliveries_count": 42,
+      "distance": 181
+    },
+    {
+      "seed": 103,
+      "total_reward": 75.71639999999995,
+      "delivered_units": 96.0,
+      "spoiled_units": 150.0,
+      "deliveries_count": 38,
+      "distance": 189
+    },
+    {
+      "seed": 104,
+      "total_reward": 101.9664,
+      "delivered_units": 116.0,
+      "spoiled_units": 119.0,
+      "deliveries_count": 28,
+      "distance": 169
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "dqn_v5_masked",
+      "agent": "dqn",
+      "scenario": "weekday",
+      "num_episodes": 1500,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "v5: DQN with full training-time action masking.\n\nDiagnosis of v4: pickup reward alone didn't break the flat-Q problem.\nInference-time masking on v4 (no retraining) lifted delivered from 75\nto 85, proving the constraint mattered. But Q-values stayed flat\n(spread 1.16) because training itself was polluted: the agent spent\nmany episodes taking actions the env would convert to idle.\n\nv5 fixes:\n- Action mask consulted during action selection (already in v4 at\n  inference; now also at training-time exploration)\n- Bellman target uses max_a' Q(s', a') taken only over a' valid in s'\n- Replay buffer stores next_state mask alongside each transition\n\nHyperparameters unchanged from v4 to make the comparison clean \u2014\nthe only variable is masking. Any improvement is attributable to it.\n"
+    },
+    "agent_params": {
+      "hidden_sizes": [
+        128,
+        128
+      ],
+      "learning_rate": 0.0005,
+      "discount": 0.95,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.1,
+      "epsilon_decay_episodes": 1200,
+      "replay_buffer_size": 100000,
+      "batch_size": 64,
+      "min_replay_to_train": 1000,
+      "target_update_interval": 500,
+      "grad_clip": 1.0,
+      "device": "auto"
+    },
+    "reward_weights": {
+      "delivery": 1.0,
+      "pickup": 0.2,
+      "spoilage": 0.5,
+      "distance": 0.01,
+      "unmet_demand": 0.1,
+      "priority_bonus": 0.05,
+      "oversupply_penalty": 0.03
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

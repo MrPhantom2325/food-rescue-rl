@@ -1,0 +1,105 @@
+{
+  "run_id": "dqn_v4_dense",
+  "agent": "dqn",
+  "scenario": "weekday",
+  "num_episodes": 1500,
+  "seed": 42,
+  "git_commit": "ba3b051a87c71a0dd6db53d8e6d7b0bf5edd312f",
+  "wall_time_seconds": 2244.8660871982574,
+  "eval_summary": {
+    "eval_mean_reward": 13.598280000000006,
+    "eval_std_reward": 40.917405917501654,
+    "eval_mean_delivered": 74.6,
+    "eval_mean_spoiled": 197.0,
+    "eval_n_episodes": 5
+  },
+  "eval_per_seed": [
+    {
+      "seed": 100,
+      "total_reward": -1.0044000000000124,
+      "delivered_units": 75.0,
+      "spoiled_units": 230.0,
+      "deliveries_count": 24,
+      "distance": 155
+    },
+    {
+      "seed": 101,
+      "total_reward": 1.4250000000000504,
+      "delivered_units": 63.0,
+      "spoiled_units": 186.0,
+      "deliveries_count": 25,
+      "distance": 176
+    },
+    {
+      "seed": 102,
+      "total_reward": -36.79879999999999,
+      "delivered_units": 57.0,
+      "spoiled_units": 257.0,
+      "deliveries_count": 29,
+      "distance": 153
+    },
+    {
+      "seed": 103,
+      "total_reward": 87.48379999999997,
+      "delivered_units": 123.0,
+      "spoiled_units": 168.0,
+      "deliveries_count": 35,
+      "distance": 164
+    },
+    {
+      "seed": 104,
+      "total_reward": 16.885800000000014,
+      "delivered_units": 55.0,
+      "spoiled_units": 144.0,
+      "deliveries_count": 22,
+      "distance": 158
+    }
+  ],
+  "config_raw": {
+    "run": {
+      "run_id": "dqn_v4_dense",
+      "agent": "dqn",
+      "scenario": "weekday",
+      "num_episodes": 1500,
+      "seed": 42,
+      "output_dir": "experiments",
+      "description": "v4: dense pickup signal + \u03b3 back to 0.95 + higher \u03b5 floor.\n\nDiagnosis of v3 (see scripts/eval_dqn_in_python.py output):\n- Q-values collapsed to a flat ~18-20 across all 11 actions\n- Average q-spread per step: 1.19 (healthy is 5-15)\n- Step 0 Q-values identical across 5 different random seeds\n- Model treated every action as equally good; survived only by\n  env forgiveness and random tie-breaking\n- Root cause: \u03b3=0.99 with sparse delivery-only reward smoothed\n  value across all states; the network learned ONE mean value\n\nv4 fixes:\n- Add pickup reward (dense intermediate signal at 0.2 per unit\n  loaded). Breaks the value-smoothing symmetry \u2014 picking up at a\n  donor with food is now a learnable positive event, not just a\n  precursor to delivery.\n- \u03b3=0.95 (was 0.99). Preserves discrimination between near-term\n  and far-term consequences. With 200-step episodes, \u03b3=0.95\n  values reward 14 steps out at ~50% \u2014 appropriate horizon.\n- \u03b5_end=0.10 (was 0.02). Keep exploring throughout training;\n  model needs to discover non-greedy good actions.\n- min_replay_to_train=1000 (was 5000). Start learning sooner.\n"
+    },
+    "agent_params": {
+      "hidden_sizes": [
+        128,
+        128
+      ],
+      "learning_rate": 0.0005,
+      "discount": 0.95,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.1,
+      "epsilon_decay_episodes": 1200,
+      "replay_buffer_size": 100000,
+      "batch_size": 64,
+      "min_replay_to_train": 1000,
+      "target_update_interval": 500,
+      "grad_clip": 1.0,
+      "device": "auto"
+    },
+    "reward_weights": {
+      "delivery": 1.0,
+      "pickup": 0.2,
+      "spoilage": 0.5,
+      "distance": 0.01,
+      "unmet_demand": 0.1,
+      "priority_bonus": 0.05,
+      "oversupply_penalty": 0.03
+    },
+    "eval": {
+      "n_episodes": 5,
+      "eval_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    }
+  }
+}

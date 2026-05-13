@@ -26,6 +26,14 @@ REGISTRATION_PLAN = [
     ("sarsa_v1", "food_rescue_sarsa", "SARSA on-policy baseline"),
     ("dqn_v1", "food_rescue_dqn", "DQN baseline on weekday scenario"),
     ("dqn_v2_holiday", "food_rescue_dqn", "DQN on holiday_rush scenario"),
+    ("dqn_v3_normalized", "food_rescue_dqn",
+     "DQN with normalized reward scale (delivery=1) and gamma=0.99. "
+     "Eval: -24 reward, 79 delivered, 217 spoiled."),
+    ("dqn_v4_dense", "food_rescue_dqn",
+     "DQN with normalized reward + pickup shaping (0.2/unit) and gamma=0.95. "
+     "Eval: +13.6 reward, 74.6 delivered, 197 spoiled. Diagnosed: flat Q-values."),
+    ("dqn_v5_masked", "food_rescue_dqn",
+     "Eval: +550 reward, 116 delivered, 137 spoiled."),
 ]
 
 
@@ -63,6 +71,12 @@ def register_run(client: MlflowClient, run, model_name: str, description: str) -
         source=artifact_uri,
         run_id=run.info.run_id,
         description=description,
+    )
+    client.transition_model_version_stage(
+        name=model_name,
+        version=version.version,
+        stage="Production",
+        archive_existing_versions=True,
     )
     print(f"  Registered: {model_name} version {version.version}  "
           f"(run: {run.data.tags.get('mlflow.runName')})")

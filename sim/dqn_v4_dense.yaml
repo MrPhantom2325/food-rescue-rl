@@ -1,0 +1,59 @@
+run:
+  run_id: dqn_v4_dense
+  agent: dqn
+  scenario: weekday
+  num_episodes: 1500
+  seed: 42
+  output_dir: experiments
+  description: |
+    v4: dense pickup signal + γ back to 0.95 + higher ε floor.
+
+    Diagnosis of v3 (see scripts/eval_dqn_in_python.py output):
+    - Q-values collapsed to a flat ~18-20 across all 11 actions
+    - Average q-spread per step: 1.19 (healthy is 5-15)
+    - Step 0 Q-values identical across 5 different random seeds
+    - Model treated every action as equally good; survived only by
+      env forgiveness and random tie-breaking
+    - Root cause: γ=0.99 with sparse delivery-only reward smoothed
+      value across all states; the network learned ONE mean value
+
+    v4 fixes:
+    - Add pickup reward (dense intermediate signal at 0.2 per unit
+      loaded). Breaks the value-smoothing symmetry — picking up at a
+      donor with food is now a learnable positive event, not just a
+      precursor to delivery.
+    - γ=0.95 (was 0.99). Preserves discrimination between near-term
+      and far-term consequences. With 200-step episodes, γ=0.95
+      values reward 14 steps out at ~50% — appropriate horizon.
+    - ε_end=0.10 (was 0.02). Keep exploring throughout training;
+      model needs to discover non-greedy good actions.
+    - min_replay_to_train=1000 (was 5000). Start learning sooner.
+
+agent_params:
+  hidden_sizes: [128, 128]
+  learning_rate: 0.0005
+  discount: 0.95
+  epsilon_start: 1.0
+  epsilon_end: 0.10
+  epsilon_decay_episodes: 1200
+  replay_buffer_size: 100000
+  batch_size: 64
+  min_replay_to_train: 1000
+  target_update_interval: 500
+  grad_clip: 1.0
+  device: auto
+
+# Normalized scale (delivery=1, not 10) keeps DQN TD targets bounded.
+# New pickup reward gives the dense intermediate signal v3 was missing.
+reward_weights:
+  delivery: 1.0
+  pickup: 0.2
+  spoilage: 0.5
+  distance: 0.01
+  unmet_demand: 0.1
+  priority_bonus: 0.05
+  oversupply_penalty: 0.03
+
+eval:
+  n_episodes: 5
+  eval_seeds: [100, 101, 102, 103, 104]

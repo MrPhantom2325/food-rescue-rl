@@ -84,30 +84,48 @@ class QNetwork(nn.Module):
 # -----------------------------
 
 class ReplayBuffer:
-    """Fixed-size circular buffer of (s, a, r, s', done) tuples."""
+    """Fixed-size circular buffer of (s, a, r, s', done, next_mask) tuples.
 
-    def __init__(self, capacity: int, seed: Optional[int] = None):
+    The next_mask field is a boolean array of legal actions in the next state.
+    It enables training-time action masking in the Bellman target: we only
+    take max over valid next-state actions, so the target isn't polluted by
+    Q-values of actions the env wouldn't allow.
+
+    Older transitions stored without a mask are auto-padded to all-True for
+    backward compatibility with checkpoints / replay snapshots saved before v5.
+    """
+
+    def __init__(self, capacity: int, num_actions: int, seed: Optional[int] = None):
         self._buf: deque = deque(maxlen=capacity)
         self._rng = random.Random(seed)
+        self.num_actions = num_actions
 
     def push(self, obs: np.ndarray, action: int, reward: float,
-             next_obs: np.ndarray, done: bool) -> None:
-        self._buf.append((obs, action, reward, next_obs, done))
+             next_obs: np.ndarray, done: bool,
+             next_mask: Optional[np.ndarray] = None) -> None:
+        self._buf.append((obs, action, reward, next_obs, done, next_mask))
 
     def sample(self, batch_size: int) -> tuple[np.ndarray, ...]:
         batch = self._rng.sample(self._buf, batch_size)
-        obs, actions, rewards, next_obs, dones = zip(*batch)
+        obs, actions, rewards, next_obs, dones, next_masks = zip(*batch)
+
+        # Pad missing masks with all-True so we don't break legacy training
+        padded_masks = [
+            m if m is not None else np.ones(self.num_actions, dtype=bool)
+            for m in next_masks
+        ]
+
         return (
             np.stack(obs).astype(np.float32),
             np.array(actions, dtype=np.int64),
             np.array(rewards, dtype=np.float32),
             np.stack(next_obs).astype(np.float32),
             np.array(dones, dtype=np.float32),
+            np.stack(padded_masks).astype(bool),
         )
 
     def __len__(self) -> int:
         return len(self._buf)
-
 
 # -----------------------------
 # DQN Agent
@@ -138,6 +156,11 @@ class DQNAgent(Policy):
         self.config = config if config is not None else DQNConfig()
         self.obs_dim = obs_dim
         self.num_actions = num_actions
+        self.replay = ReplayBuffer(
+            capacity=self.config.replay_buffer_size,
+            num_actions=num_actions,
+            seed=seed,
+        )
 
         if seed is not None:
             torch.manual_seed(seed)
@@ -153,7 +176,6 @@ class DQNAgent(Policy):
         self.target_net.eval()
 
         self.optimizer = optim.Adam(self.q_net.parameters(), lr=self.config.learning_rate)
-        self.replay = ReplayBuffer(self.config.replay_buffer_size, seed=seed)
 
         self._step_count = 0       # global step counter (for target updates)
         self._episode_count = 0    # for ε annealing
@@ -169,47 +191,73 @@ class DQNAgent(Policy):
         return c.epsilon_start + (c.epsilon_end - c.epsilon_start) * progress
 
     def select_action(self, env: FoodRescueEnv, obs: np.ndarray) -> int:
+        # Get action mask from env (or use all-valid if env doesn't support it,
+        # to maintain backward compat with older code paths)
+        if hasattr(env, "action_mask"):
+            mask = env.action_mask()
+        else:
+            mask = np.ones(self.num_actions, dtype=bool)
+
+        valid_actions = np.flatnonzero(mask)
+
         eps = self.epsilon() if self._training else 0.0
         if self._training and self._np_rng.random() < eps:
-            return int(self._np_rng.integers(0, self.num_actions))
+            # Random exploration, but only among valid actions
+            return int(self._np_rng.choice(valid_actions))
 
         with torch.no_grad():
             obs_t = torch.from_numpy(obs.astype(np.float32)).unsqueeze(0).to(self.device)
             q_values = self.q_net(obs_t).squeeze(0).cpu().numpy()
-        # Random tie-breaking
-        max_val = q_values.max()
-        best = np.flatnonzero(q_values == max_val)
-        return int(self._np_rng.choice(best))
 
+        # Mask out invalid actions by setting their Q-values to -inf
+        masked_q = np.where(mask, q_values, -np.inf)
+
+        # Random tie-breaking among the best valid actions
+        max_val = masked_q.max()
+        best = np.flatnonzero(masked_q == max_val)
+        return int(self._np_rng.choice(best))
     # ---- Training ----
 
-    def store_transition(self, obs, action, reward, next_obs, done) -> None:
-        self.replay.push(obs, action, reward, next_obs, done)
+    def store_transition(self, obs, action, reward, next_obs, done, next_mask=None) -> None:
+        self.replay.push(obs, action, reward, next_obs, done, next_mask)
 
     def train_step(self) -> Optional[float]:
         """
         One gradient step on a sampled batch. Returns the loss, or None if
         the replay buffer is too small to train yet.
+
+        Uses action masking in the Bellman target: max_a' Q(s', a') is taken
+        only over actions that are valid in s'. This sharpens credit
+        assignment when the env has structural action constraints.
         """
         if not self._training:
             return None
         if len(self.replay) < self.config.min_replay_to_train:
             return None
 
-        obs_b, act_b, rew_b, next_obs_b, done_b = self.replay.sample(self.config.batch_size)
+        obs_b, act_b, rew_b, next_obs_b, done_b, next_mask_b = self.replay.sample(
+            self.config.batch_size
+        )
 
         obs_t = torch.from_numpy(obs_b).to(self.device)
         act_t = torch.from_numpy(act_b).to(self.device)
         rew_t = torch.from_numpy(rew_b).to(self.device)
         next_obs_t = torch.from_numpy(next_obs_b).to(self.device)
         done_t = torch.from_numpy(done_b).to(self.device)
+        # Convert mask to a float tensor that we'll use to set invalid Q-values
+        # to a very negative number before taking the max.
+        next_mask_t = torch.from_numpy(next_mask_b).to(self.device)
 
         # Current Q(s, a)
         q_pred = self.q_net(obs_t).gather(1, act_t.unsqueeze(1)).squeeze(1)
 
-        # Bootstrap target: r + gamma * max_a' Q_target(s', a'), zeroed at terminal
+        # Bootstrap target: r + gamma * max_a' Q_target(s', a'), masked.
+        # Invalid actions get -1e9 so they never win the argmax.
         with torch.no_grad():
-            q_next_max = self.target_net(next_obs_t).max(dim=1).values
+            q_next = self.target_net(next_obs_t)
+            # Where mask is False, replace Q with -inf (very negative float).
+            q_next_masked = q_next.masked_fill(~next_mask_t, -1e9)
+            q_next_max = q_next_masked.max(dim=1).values
             target = rew_t + self.config.discount * q_next_max * (1.0 - done_t)
 
         loss = nn.functional.smooth_l1_loss(q_pred, target)
@@ -219,6 +267,7 @@ class DQNAgent(Policy):
         torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), self.config.grad_clip)
         self.optimizer.step()
 
+        # Periodic target network sync
         self._step_count += 1
         if self._step_count % self.config.target_update_interval == 0:
             self.target_net.load_state_dict(self.q_net.state_dict())
