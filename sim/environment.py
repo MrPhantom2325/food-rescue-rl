@@ -173,6 +173,44 @@ class FoodRescueEnv(gym.Env):
             shape=(n_features,),
             dtype=np.float32,
         )
+    def action_mask(self) -> np.ndarray:
+        """
+        Boolean mask of valid actions for the CURRENT vehicle.
+        
+        Returns a (num_actions,) bool array where True = legal action.
+        Used both during training (mask infeasible Q-values before argmax)
+        and at inference time (DQN's select_action consults it).
+        
+        Mask rules:
+        - "head to donor i" is valid iff donor i has pending food AND
+        the current vehicle isn't already at full capacity
+        - "head to shelter j" is valid iff shelter j has unmet demand AND
+        the current vehicle has at least one unit loaded
+        - "idle" is always valid (so we never mask everything out)
+        """
+        v = self.vehicles[self.current_vehicle_idx]
+        cap = v.capacity if v.capacity > 0 else 20
+        has_food = v.current_load() > 0
+        has_space = v.current_load() < cap
+
+        mask = np.zeros(self.action_space.n, dtype=bool)
+
+        # Donor actions: 0 .. num_donors-1
+        for i, donor in enumerate(self.scenario.donors):
+            if has_space and donor.total_pending_quantity() > 0:
+                mask[i] = True
+
+        # Shelter actions: num_donors .. num_donors+num_shelters-1
+        for j, shelter in enumerate(self.scenario.shelters):
+            if has_food and shelter.current_demand > 0:
+                mask[self.num_donors + j] = True
+
+        # Idle is always available as a fallback
+        mask[self.num_donors + self.num_shelters] = True
+
+        return mask
+
+
 
     # -----------------------------
     # Action decoding

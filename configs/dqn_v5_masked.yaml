@@ -1,0 +1,51 @@
+run:
+  run_id: dqn_v5_masked
+  agent: dqn
+  scenario: weekday
+  num_episodes: 1500
+  seed: 42
+  output_dir: experiments
+  description: |
+    v5: DQN with full training-time action masking.
+
+    Diagnosis of v4: pickup reward alone didn't break the flat-Q problem.
+    Inference-time masking on v4 (no retraining) lifted delivered from 75
+    to 85, proving the constraint mattered. But Q-values stayed flat
+    (spread 1.16) because training itself was polluted: the agent spent
+    many episodes taking actions the env would convert to idle.
+
+    v5 fixes:
+    - Action mask consulted during action selection (already in v4 at
+      inference; now also at training-time exploration)
+    - Bellman target uses max_a' Q(s', a') taken only over a' valid in s'
+    - Replay buffer stores next_state mask alongside each transition
+
+    Hyperparameters unchanged from v4 to make the comparison clean —
+    the only variable is masking. Any improvement is attributable to it.
+
+agent_params:
+  hidden_sizes: [128, 128]
+  learning_rate: 0.0005
+  discount: 0.95
+  epsilon_start: 1.0
+  epsilon_end: 0.10
+  epsilon_decay_episodes: 1200
+  replay_buffer_size: 100000
+  batch_size: 64
+  min_replay_to_train: 1000
+  target_update_interval: 500
+  grad_clip: 1.0
+  device: auto
+
+reward_weights:
+  delivery: 1.0
+  pickup: 0.2
+  spoilage: 0.5
+  distance: 0.01
+  unmet_demand: 0.1
+  priority_bonus: 0.05
+  oversupply_penalty: 0.03
+
+eval:
+  n_episodes: 5
+  eval_seeds: [100, 101, 102, 103, 104]

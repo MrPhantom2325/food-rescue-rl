@@ -1,0 +1,23 @@
+{
+  "config": {
+    "hidden_sizes": [
+      128,
+      128
+    ],
+    "learning_rate": 0.0005,
+    "discount": 0.95,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.1,
+    "epsilon_decay_episodes": 1200,
+    "replay_buffer_size": 100000,
+    "batch_size": 64,
+    "min_replay_to_train": 1000,
+    "target_update_interval": 500,
+    "grad_clip": 1.0,
+    "device": "auto"
+  },
+  "obs_dim": 31,
+  "num_actions": 11,
+  "step_count": 299001,
+  "episode_count": 1500
+}
