@@ -95,9 +95,10 @@ class ReplayBuffer:
     backward compatibility with checkpoints / replay snapshots saved before v5.
     """
 
-    def __init__(self, capacity: int, seed: Optional[int] = None):
+    def __init__(self, capacity: int, num_actions: int, seed: Optional[int] = None):
         self._buf: deque = deque(maxlen=capacity)
         self._rng = random.Random(seed)
+        self.num_actions = num_actions
 
     def push(self, obs: np.ndarray, action: int, reward: float,
              next_obs: np.ndarray, done: bool,
@@ -109,18 +110,10 @@ class ReplayBuffer:
         obs, actions, rewards, next_obs, dones, next_masks = zip(*batch)
 
         # Pad missing masks with all-True so we don't break legacy training
-        num_actions = next_obs[0].shape[0]  # placeholder; we'll fix below
-        # Better: derive num_actions from any non-None mask, else fall back
-        ref = next((m for m in next_masks if m is not None), None)
-        if ref is not None:
-            num_actions = ref.shape[0]
-            padded_masks = [
-                m if m is not None else np.ones(num_actions, dtype=bool)
-                for m in next_masks
-            ]
-        else:
-            # No masks anywhere — disable masking by using all-True
-            padded_masks = [np.ones(num_actions, dtype=bool) for _ in next_masks]
+        padded_masks = [
+            m if m is not None else np.ones(self.num_actions, dtype=bool)
+            for m in next_masks
+        ]
 
         return (
             np.stack(obs).astype(np.float32),
@@ -163,6 +156,11 @@ class DQNAgent(Policy):
         self.config = config if config is not None else DQNConfig()
         self.obs_dim = obs_dim
         self.num_actions = num_actions
+        self.replay = ReplayBuffer(
+            capacity=self.config.replay_buffer_size,
+            num_actions=num_actions,
+            seed=seed,
+        )
 
         if seed is not None:
             torch.manual_seed(seed)
@@ -178,7 +176,6 @@ class DQNAgent(Policy):
         self.target_net.eval()
 
         self.optimizer = optim.Adam(self.q_net.parameters(), lr=self.config.learning_rate)
-        self.replay = ReplayBuffer(self.config.replay_buffer_size, seed=seed)
 
         self._step_count = 0       # global step counter (for target updates)
         self._episode_count = 0    # for ε annealing

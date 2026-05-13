@@ -582,7 +582,7 @@
         <select id="policy-select">
           <option value="greedy" selected>greedy (rule-based)</option>
           <option value="random">random</option>
-          <option value="api-dqn">DQN (via API)</option>
+          <option value="api-dqn" selected>DQN (via API)</option>
         </select>
         <button class="btn" id="btn-reset">↺ reset</button>
         <button class="btn primary" id="btn-step">step ▶</button>
@@ -1421,6 +1421,11 @@
       S = initState("weekday");
       draw();
       updatePanel();
+      if (document.getElementById("policy-select").value === "api-dqn") {
+        document.getElementById("tb-api-pill").style.display = "flex";
+        setApiStatus("checking…", "");
+        checkApiHealth();
+      }
     </script>
   </body>
 </html>

@@ -32,6 +32,8 @@ REGISTRATION_PLAN = [
     ("dqn_v4_dense", "food_rescue_dqn",
      "DQN with normalized reward + pickup shaping (0.2/unit) and gamma=0.95. "
      "Eval: +13.6 reward, 74.6 delivered, 197 spoiled. Diagnosed: flat Q-values."),
+    ("dqn_v5_masked", "food_rescue_dqn",
+     "Eval: +550 reward, 116 delivered, 137 spoiled."),
 ]
 
 
@@ -69,6 +71,12 @@ def register_run(client: MlflowClient, run, model_name: str, description: str) -
         source=artifact_uri,
         run_id=run.info.run_id,
         description=description,
+    )
+    client.transition_model_version_stage(
+        name=model_name,
+        version=version.version,
+        stage="Production",
+        archive_existing_versions=True,
     )
     print(f"  Registered: {model_name} version {version.version}  "
           f"(run: {run.data.tags.get('mlflow.runName')})")

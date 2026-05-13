@@ -5,8 +5,9 @@ Three loading strategies, tried in order:
 
 1. From the MLflow Model Registry (production-style): set
    FOOD_RESCUE_MODEL_NAME and FOOD_RESCUE_MODEL_VERSION env vars
-2. From a local file path: set FOOD_RESCUE_MODEL_PATH
-3. Built-in default: look for experiments/policies/dqn_tuned.pt
+2. From the MLflow Model Registry defaults: food_rescue_dqn @ latest
+3. From a local file path: set FOOD_RESCUE_MODEL_PATH
+4. Built-in fallback: look for experiments/policies/dqn_v5_masked.pt
    (or any DQN policy file in that folder)
 
 Only DQN policies are supported for serving — they take an obs vector directly,
@@ -133,7 +134,8 @@ def load_policy_from_env() -> tuple[DQNAgent, dict[str, Any]]:
     Resolution order:
     1. FOOD_RESCUE_MODEL_NAME + FOOD_RESCUE_MODEL_VERSION -> MLflow Registry
     2. FOOD_RESCUE_MODEL_PATH -> local file or directory
-    3. Default: experiments/policies/dqn_tuned.pt or dqn_v1.pt
+    3. Default MLflow Registry model food_rescue_dqn @ latest
+    4. Local DQN fallback files
     """
     model_name = os.environ.get("FOOD_RESCUE_MODEL_NAME")
     model_version = os.environ.get("FOOD_RESCUE_MODEL_VERSION")
@@ -145,8 +147,14 @@ def load_policy_from_env() -> tuple[DQNAgent, dict[str, Any]]:
     if model_path:
         return _load_from_path(model_path)
 
+    try:
+        return _load_from_mlflow_registry("food_rescue_dqn", "latest")
+    except Exception as e:
+        print(f"  Registry default load failed, falling back to local policy: {e}")
+
     # Fallback: look for any DQN policy
     candidates = [
+        Path("experiments/policies/dqn_v5_masked.pt"),
         Path("experiments/policies/dqn_tuned.pt"),
         Path("experiments/policies/dqn_v3_normalized.pt"),
     ]
@@ -158,5 +166,5 @@ def load_policy_from_env() -> tuple[DQNAgent, dict[str, Any]]:
         "No policy could be loaded. Set FOOD_RESCUE_MODEL_NAME + "
         "FOOD_RESCUE_MODEL_VERSION (for MLflow registry), or "
         "FOOD_RESCUE_MODEL_PATH (for local file), or place a DQN policy at "
-        "experiments/policies/dqn_tuned.pt or dqn_v1.pt."
+        "experiments/policies/dqn_v5_masked.pt, dqn_tuned.pt, or dqn_v3_normalized.pt."
     )
